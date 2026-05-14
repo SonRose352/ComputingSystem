@@ -1,0 +1,12 @@
+package com.example.computingsystem.presentation.calculator
+
+sealed class CalculatorAction {
+    data class Number(val value: String)    : CalculatorAction()
+    data class Operator(val symbol: String) : CalculatorAction()
+    data class Function(val symbol: String) : CalculatorAction()
+    data class Constant(val symbol: String) : CalculatorAction()
+    data object Decimal                     : CalculatorAction()
+    data object Backspace                   : CalculatorAction()
+    data object Clear                       : CalculatorAction()
+    data object Calculate                   : CalculatorAction()
+}
