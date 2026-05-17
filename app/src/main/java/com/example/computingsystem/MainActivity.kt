@@ -81,6 +81,6 @@ private fun MainScaffold() {
 
 private data class NavItem(
     val screen: Screen,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: ImageVector,
     val label: String
 )

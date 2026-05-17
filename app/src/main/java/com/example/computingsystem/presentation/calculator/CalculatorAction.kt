@@ -9,4 +9,10 @@ sealed class CalculatorAction {
     data object Backspace                   : CalculatorAction()
     data object Clear                       : CalculatorAction()
     data object Calculate                   : CalculatorAction()
+    data object ToggleExpanded              : CalculatorAction()
+    data object ToggleInverse               : CalculatorAction()
+    data object ToggleAngleMode             : CalculatorAction()
+    data object MoveCursorLeft              : CalculatorAction()
+    data object MoveCursorRight             : CalculatorAction()
+    data class SetCursorPosition(val position: Int) : CalculatorAction()
 }

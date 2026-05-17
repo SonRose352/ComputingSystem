@@ -1,5 +1,7 @@
 package com.example.computingsystem.presentation.calculator
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.computingsystem.domain.model.Expression
@@ -23,90 +25,157 @@ class CalculatorViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CalculatorUiState())
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
-    // Функции, которые должны удаляться целиком
-    private val functionTokens = setOf("sin(", "cos(", "tan(", "sqrt(")
+    private val functionTokens = setOf(
+        "sin(", "cos(", "tan(", "sqrt(",
+        "asin(", "acos(", "atan(",
+        "ln(", "log(",
+        "^(-1)"
+    )
 
     fun onAction(action: CalculatorAction) {
         when (action) {
-            is CalculatorAction.Number    -> appendToken(action.value)
-            is CalculatorAction.Operator  -> appendToken(action.symbol)
-            is CalculatorAction.Decimal   -> appendDecimal()
-            is CalculatorAction.Function  -> appendToken(action.symbol)
-            is CalculatorAction.Constant  -> appendToken(action.symbol)
-            is CalculatorAction.Backspace -> backspace()
-            is CalculatorAction.Clear     -> clear()
-            is CalculatorAction.Calculate -> calculate()
+            is CalculatorAction.Number           -> insertToken(action.value)
+            is CalculatorAction.Operator         -> insertToken(action.symbol)
+            is CalculatorAction.Decimal          -> insertDecimal()
+            is CalculatorAction.Function         -> insertToken(action.symbol)
+            is CalculatorAction.Constant         -> insertToken(action.symbol)
+            is CalculatorAction.Backspace        -> backspace()
+            is CalculatorAction.Clear            -> clear()
+            is CalculatorAction.Calculate        -> calculate()
+            is CalculatorAction.ToggleExpanded   -> toggleExpanded()
+            is CalculatorAction.ToggleInverse    -> toggleInverse()
+            is CalculatorAction.ToggleAngleMode  -> toggleAngleMode()
+            is CalculatorAction.MoveCursorLeft   -> moveCursorLeft()
+            is CalculatorAction.MoveCursorRight  -> moveCursorRight()
+            is CalculatorAction.SetCursorPosition -> setCursorPosition(action.position)
         }
     }
 
-    private fun appendToken(token: String) {
-        _uiState.update { state ->
-            val updatedTokens = if (state.tokens.isEmpty() && token.toIntOrNull() != null) {
-                // Первое число — заменяет "0"
-                listOf(token)
-            } else {
-                state.tokens + token
-            }
-            state.copy(tokens = updatedTokens, result = "", isError = false)
+    private fun toggleExpanded() {
+        _uiState.update { it.copy(isExpanded = !it.isExpanded) }
+    }
+
+    private fun toggleInverse() {
+        _uiState.update { it.copy(isInverse = !it.isInverse) }
+    }
+
+    private fun toggleAngleMode() {
+        _uiState.update {
+            it.copy(
+                angleMode = if (it.angleMode == AngleMode.RAD)
+                    AngleMode.DEG else AngleMode.RAD
+            )
         }
     }
 
-    private fun appendDecimal() {
+    private fun insertToken(token: String) {
         _uiState.update { state ->
-            if (state.tokens.isEmpty()) {
-                // Если пусто — начинаем с "0."
-                return@update state.copy(tokens = listOf("0", "."))
+            // Специальная обработка для ^(-1)
+            if (token == "^(-1)") {
+                return@update handleReciprocal(state)
             }
 
-            val lastToken = state.tokens.last()
+            val pos = state.cursorPosition
+            val newTokens = state.tokens.toMutableList().apply {
+                add(pos, token)
+            }
 
-            // Точка только после цифры
+            state.copy(
+                tokens = newTokens,
+                cursorPosition = pos + 1,
+                result = "",
+                isError = false
+            )
+        }
+    }
+
+    private fun handleReciprocal(state: CalculatorUiState): CalculatorUiState {
+        if (state.tokens.isEmpty() || state.cursorPosition == 0) return state
+
+        val pos = state.cursorPosition
+        val beforeCursor = state.tokens.take(pos)
+        val lastToken = beforeCursor.lastOrNull() ?: return state
+
+        // Если последний токен — число
+        if (lastToken.all { it.isDigit() || it == '.' }) {
+            val newTokens = state.tokens.toMutableList().apply {
+                removeAt(pos - 1)
+                add(pos - 1, "$lastToken^(-1)")
+            }
+            return state.copy(tokens = newTokens, result = "", isError = false)
+        }
+
+        return state
+    }
+
+    private fun insertDecimal() {
+        _uiState.update { state ->
+            val pos = state.cursorPosition
+
+            if (pos == 0 || state.tokens.isEmpty()) {
+                val newTokens = listOf("0", ".")
+                return@update state.copy(tokens = newTokens, cursorPosition = 2)
+            }
+
+            val beforeCursor = state.tokens.take(pos)
+            val lastToken = beforeCursor.lastOrNull() ?: return@update state
+
             if (!lastToken.last().isDigit()) {
                 return@update state
             }
 
-            // Находим все токены последнего числа (могут быть раздельные: ["1", "2", "3"])
-            val lastNumberTokens = state.tokens.takeLastWhile { token ->
+            val lastNumberTokens = beforeCursor.takeLastWhile { token ->
                 token.all { it.isDigit() || it == '.' }
             }
 
-            // Если уже есть точка — не добавляем
             if (lastNumberTokens.any { "." in it }) {
                 state
             } else {
-                state.copy(tokens = state.tokens + ".")
+                val newTokens = state.tokens.toMutableList().apply {
+                    add(pos, ".")
+                }
+                state.copy(tokens = newTokens, cursorPosition = pos + 1)
             }
         }
     }
 
     private fun backspace() {
         _uiState.update { state ->
-            if (state.tokens.isEmpty()) return@update state
+            if (state.tokens.isEmpty() || state.cursorPosition == 0) return@update state
 
-            val lastToken = state.tokens.last()
+            val pos = state.cursorPosition
+            val tokenToDelete = state.tokens[pos - 1]
 
-            // Если токен — функция (sin(, cos( и т.д.), удаляем целиком
-            if (lastToken in functionTokens) {
+            if (tokenToDelete in functionTokens) {
+                // Удаляем весь токен функции
+                val newTokens = state.tokens.toMutableList().apply {
+                    removeAt(pos - 1)
+                }
                 state.copy(
-                    tokens = state.tokens.dropLast(1),
+                    tokens = newTokens,
+                    cursorPosition = pos - 1,
                     result = "",
                     isError = false
                 )
-            }
-            // Если токен — многосимвольное число/оператор, удаляем посимвольно
-            else if (lastToken.length > 1) {
-                val trimmed = lastToken.dropLast(1)
+            } else if (tokenToDelete.length > 1) {
+                // Удаляем последний символ из токена
+                val trimmed = tokenToDelete.dropLast(1)
+                val newTokens = state.tokens.toMutableList().apply {
+                    set(pos - 1, trimmed)
+                }
                 state.copy(
-                    tokens = state.tokens.dropLast(1) + trimmed,
+                    tokens = newTokens,
                     result = "",
                     isError = false
                 )
-            }
-            // Если токен — один символ, удаляем весь токен
-            else {
-                val updatedTokens = state.tokens.dropLast(1)
+            } else {
+                // Удаляем весь односимвольный токен
+                val newTokens = state.tokens.toMutableList().apply {
+                    removeAt(pos - 1)
+                }
                 state.copy(
-                    tokens = updatedTokens,
+                    tokens = newTokens,
+                    cursorPosition = pos - 1,
                     result = "",
                     isError = false
                 )
@@ -115,7 +184,32 @@ class CalculatorViewModel @Inject constructor(
     }
 
     private fun clear() {
-        _uiState.value = CalculatorUiState()
+        _uiState.update {
+            it.copy(tokens = emptyList(), cursorPosition = 0, result = "", isError = false)
+        }
+    }
+
+    private fun moveCursorLeft() {
+        _uiState.update { state ->
+            if (state.cursorPosition > 0) {
+                state.copy(cursorPosition = state.cursorPosition - 1)
+            } else state
+        }
+    }
+
+    private fun moveCursorRight() {
+        _uiState.update { state ->
+            if (state.cursorPosition < state.tokens.size) {
+                state.copy(cursorPosition = state.cursorPosition + 1)
+            } else state
+        }
+    }
+
+    private fun setCursorPosition(position: Int) {
+        _uiState.update { state ->
+            val validPosition = position.coerceIn(0, state.tokens.size)
+            state.copy(cursorPosition = validPosition)
+        }
     }
 
     private fun calculate() {
@@ -124,19 +218,24 @@ class CalculatorViewModel @Inject constructor(
 
         var input = tokens.joinToString("")
 
-        // Считаем незакрытые скобки
         val openCount = input.count { it == '(' }
         val closeCount = input.count { it == ')' }
         val missing = openCount - closeCount
 
-        // Автоматически закрываем недостающие скобки
         if (missing > 0) {
             input += ")".repeat(missing)
         }
 
-        evaluate(input).fold(
+        evaluate(input, _uiState.value.angleMode).fold(
             onSuccess = { result ->
-                _uiState.update { it.copy(result = result, isError = false) }
+                _uiState.update {
+                    it.copy(
+                        result = result,
+                        isError = false,
+                        // Курсор в конец после вычисления
+                        cursorPosition = it.tokens.size
+                    )
+                }
                 viewModelScope.launch {
                     save(Expression(input = input, result = result))
                 }
