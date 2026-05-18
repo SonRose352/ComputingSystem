@@ -7,7 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.computingsystem.presentation.calculator.CalculatorScreen
 import com.example.computingsystem.presentation.board.BoardScreen
-import com.example.computingsystem.presentation.history.HistoryScreen
+import com.example.computingsystem.presentation.settings.SettingsScreen
 
 @Composable
 fun AppNavGraph(
@@ -21,6 +21,6 @@ fun AppNavGraph(
     ) {
         composable(Screen.Calculator.route) { CalculatorScreen() }
         composable(Screen.Board.route)      { BoardScreen() }
-        composable(Screen.History.route)    { HistoryScreen() }
+        composable(Screen.Settings.route)   { SettingsScreen() }
     }
 }

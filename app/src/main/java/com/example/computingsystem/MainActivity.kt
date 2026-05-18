@@ -40,7 +40,7 @@ private fun MainScaffold() {
     val navItems = listOf(
         NavItem(Screen.Calculator, ImageVector.vectorResource(R.drawable.ic_calculator),  "Калькулятор"),
         NavItem(Screen.Board,      ImageVector.vectorResource(R.drawable.ic_board),  "Доска"),
-        NavItem(Screen.History,    ImageVector.vectorResource(R.drawable.ic_history),    "История")
+        NavItem(Screen.Settings,    ImageVector.vectorResource(R.drawable.ic_history),    "Настройки")
     )
 
     Scaffold(

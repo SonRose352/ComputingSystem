@@ -18,5 +18,8 @@ class ExpressionRepositoryImpl @Inject constructor(
     override suspend fun save(expression: Expression) =
         dao.insert(ExpressionMapper.toEntity(expression))
 
+    override suspend fun delete(expression: Expression) =
+        dao.delete(ExpressionMapper.toEntity(expression))
+
     override suspend fun deleteAll() = dao.deleteAll()
 }

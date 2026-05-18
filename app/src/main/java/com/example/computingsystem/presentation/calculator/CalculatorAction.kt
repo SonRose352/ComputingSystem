@@ -1,5 +1,7 @@
 package com.example.computingsystem.presentation.calculator
 
+import com.example.computingsystem.domain.model.Expression
+
 sealed class CalculatorAction {
     data class Number(val value: String)    : CalculatorAction()
     data class Operator(val symbol: String) : CalculatorAction()
@@ -15,4 +17,10 @@ sealed class CalculatorAction {
     data object MoveCursorLeft              : CalculatorAction()
     data object MoveCursorRight             : CalculatorAction()
     data class SetCursorPosition(val position: Int) : CalculatorAction()
+
+    data object ShowHistory                          : CalculatorAction()
+    data object HideHistory                          : CalculatorAction()
+    data class UseFromHistory(val result: String)    : CalculatorAction()
+    data class DeleteFromHistory(val expression: Expression) : CalculatorAction()
+    data object ClearHistory                         : CalculatorAction()
 }

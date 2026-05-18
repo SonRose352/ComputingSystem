@@ -5,12 +5,17 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.computingsystem.domain.model.Expression
+import com.example.computingsystem.domain.usecase.ClearHistoryUseCase
+import com.example.computingsystem.domain.usecase.DeleteExpressionUseCase
 import com.example.computingsystem.domain.usecase.EvaluateExpressionUseCase
+import com.example.computingsystem.domain.usecase.GetHistoryUseCase
 import com.example.computingsystem.domain.usecase.SaveExpressionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.sql.Date
@@ -19,11 +24,17 @@ import javax.inject.Inject
 @HiltViewModel
 class CalculatorViewModel @Inject constructor(
     private val evaluate: EvaluateExpressionUseCase,
-    private val save: SaveExpressionUseCase
+    private val save: SaveExpressionUseCase,
+    private val getHistory: GetHistoryUseCase,
+    private val deleteExpression: DeleteExpressionUseCase,
+    private val clearHistory: ClearHistoryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalculatorUiState())
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
+
+    val history: StateFlow<List<Expression>> = getHistory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val functionTokens = setOf(
         "sin(", "cos(", "tan(", "sqrt(",
@@ -48,6 +59,37 @@ class CalculatorViewModel @Inject constructor(
             is CalculatorAction.MoveCursorLeft   -> moveCursorLeft()
             is CalculatorAction.MoveCursorRight  -> moveCursorRight()
             is CalculatorAction.SetCursorPosition -> setCursorPosition(action.position)
+
+            is CalculatorAction.ShowHistory       -> showHistory()
+            is CalculatorAction.HideHistory       -> hideHistory()
+            is CalculatorAction.UseFromHistory    -> useFromHistory(action.result)
+            is CalculatorAction.DeleteFromHistory -> deleteFromHistory(action.expression)
+            is CalculatorAction.ClearHistory      -> clearAllHistory()
+        }
+    }
+
+    private fun showHistory() {
+        _uiState.update { it.copy(showHistory = true) }
+    }
+
+    private fun hideHistory() {
+        _uiState.update { it.copy(showHistory = false) }
+    }
+
+    private fun useFromHistory(result: String) {
+        insertToken(result)
+        hideHistory()
+    }
+
+    private fun deleteFromHistory(expression: Expression) {
+        viewModelScope.launch {
+            deleteExpression(expression)
+        }
+    }
+
+    private fun clearAllHistory() {
+        viewModelScope.launch {
+            clearHistory()
         }
     }
 

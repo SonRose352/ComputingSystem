@@ -13,6 +13,9 @@ interface ExpressionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ExpressionEntity)
 
+    @Delete
+    suspend fun delete(entity: ExpressionEntity)
+
     @Query("DELETE FROM expressions")
     suspend fun deleteAll()
 }

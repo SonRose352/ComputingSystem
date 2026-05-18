@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.computingsystem.R
+import com.example.computingsystem.presentation.components.HistoryDialog
 import kotlinx.coroutines.delay
 
 @Composable
@@ -26,6 +27,7 @@ fun CalculatorScreen(
     viewModel: CalculatorViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val history by viewModel.history.collectAsState()
 
     Column(
         modifier = Modifier
@@ -39,6 +41,7 @@ fun CalculatorScreen(
             isError = state.isError,
             isExpanded = state.isExpanded,
             onToggleExpanded = { viewModel.onAction(CalculatorAction.ToggleExpanded) },
+            onShowHistory = { viewModel.onAction(CalculatorAction.ShowHistory) },
             onCursorPositionChange = { pos ->
                 viewModel.onAction(CalculatorAction.SetCursorPosition(pos))
             },
@@ -70,6 +73,20 @@ fun CalculatorScreen(
             )
         }
     }
+
+    if (state.showHistory) {
+        HistoryDialog(
+            history = history,
+            onDismiss = { viewModel.onAction(CalculatorAction.HideHistory) },
+            onUseExpression = { expr ->
+                viewModel.onAction(CalculatorAction.UseFromHistory(expr.result))
+            },
+            onDeleteExpression = { expr ->
+                viewModel.onAction(CalculatorAction.DeleteFromHistory(expr))
+            },
+            onClearAll = { viewModel.onAction(CalculatorAction.ClearHistory) }
+        )
+    }
 }
 
 @Composable
@@ -79,6 +96,7 @@ private fun DisplayPanel(
     isError: Boolean,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
+    onShowHistory: () -> Unit,
     onCursorPositionChange: (Int) -> Unit,
     tokens: List<String>,
     cursorPosition: Int,
@@ -88,8 +106,10 @@ private fun DisplayPanel(
         // Кнопка переключения режима
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Кнопка расширения
             Icon(
                 painter = painterResource(
                     if (isExpanded) R.drawable.ic_resize_in else R.drawable.ic_resize_out
@@ -99,6 +119,19 @@ private fun DisplayPanel(
                 modifier = Modifier
                     .size(36.dp)
                     .clickable(onClick = onToggleExpanded)
+                    .padding(6.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Кнопка истории
+            Icon(
+                painter = painterResource(R.drawable.ic_history),
+                contentDescription = "История",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clickable(onClick = onShowHistory)
                     .padding(6.dp)
             )
         }

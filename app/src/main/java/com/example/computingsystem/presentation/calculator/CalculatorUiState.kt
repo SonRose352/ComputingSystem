@@ -7,7 +7,8 @@ data class CalculatorUiState(
     val isError: Boolean = false,
     val isExpanded: Boolean = false,
     val isInverse: Boolean = false,
-    val angleMode: AngleMode = AngleMode.RAD
+    val angleMode: AngleMode = AngleMode.RAD,
+    val showHistory: Boolean = false
 ) {
     val displayInput: String
         get() = if (tokens.isEmpty()) "0" else tokens.joinToString("")

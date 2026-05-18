@@ -6,5 +6,6 @@ import kotlinx.coroutines.flow.Flow
 interface IExpressionRepository {
     fun getHistory(): Flow<List<Expression>>
     suspend fun save(expression: Expression)
+    suspend fun delete(expression: Expression)
     suspend fun deleteAll()
 }
