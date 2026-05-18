@@ -2,6 +2,7 @@ package com.example.computingsystem.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.computingsystem.data.local.dao.BoardNodeDao
 import com.example.computingsystem.data.local.dao.ExpressionDao
 import com.example.computingsystem.data.local.db.AppDatabase
 import dagger.Module
@@ -24,4 +25,7 @@ object DatabaseModule {
 
     @Provides
     fun provideExpressionDao(db: AppDatabase): ExpressionDao = db.expressionDao()
+
+    @Provides
+    fun provideBoardNodeDao(db: AppDatabase): BoardNodeDao = db.boardNodeDao()
 }
