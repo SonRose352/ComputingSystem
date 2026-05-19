@@ -13,7 +13,7 @@ import com.example.computingsystem.data.local.entity.ExpressionEntity
         ExpressionEntity::class,
         BoardNodeEntity::class
                ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

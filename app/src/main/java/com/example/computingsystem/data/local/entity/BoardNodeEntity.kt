@@ -10,6 +10,8 @@ data class BoardNodeEntity(
     val type: String,
     val x: Float,
     val y: Float,
+    val width: Float,
+    val height: Float,
     val content: String,
     val updatedAt: Long
 )

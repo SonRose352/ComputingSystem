@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Offset
 data class BoardUiState(
     val showAddMenu: Boolean = false,
     val selectedNodeType: NodeType? = null,
+    val activeNodeId: String? = null,
     val scale: Float = 1f,
     val offset: Offset = Offset.Zero
 )

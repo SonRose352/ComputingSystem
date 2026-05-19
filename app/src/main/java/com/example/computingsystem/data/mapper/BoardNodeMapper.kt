@@ -3,9 +3,7 @@ package com.example.computingsystem.data.mapper
 import com.example.computingsystem.data.local.entity.BoardNodeEntity
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Position
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
+import com.example.computingsystem.domain.model.Size
 
 object BoardNodeMapper {
 
@@ -15,6 +13,7 @@ object BoardNodeMapper {
                 BoardNode.TextNode(
                     id = entity.id,
                     position = Position(entity.x, entity.y),
+                    size = Size(entity.width, entity.height),
                     text = entity.content
                 )
             }
@@ -23,6 +22,7 @@ object BoardNodeMapper {
                 BoardNode.MathNode(
                     id = entity.id,
                     position = Position(entity.x, entity.y),
+                    size = Size(entity.width, entity.height),
                     expression = parts.getOrNull(0) ?: "",
                     result = parts.getOrNull(1) ?: ""
                 )
@@ -38,6 +38,8 @@ object BoardNodeMapper {
                 type = "text",
                 x = domain.position.x,
                 y = domain.position.y,
+                width = domain.size.width,
+                height = domain.size.height,
                 content = domain.text,
                 updatedAt = System.currentTimeMillis()
             )
@@ -46,6 +48,8 @@ object BoardNodeMapper {
                 type = "math",
                 x = domain.position.x,
                 y = domain.position.y,
+                width = domain.size.width,
+                height = domain.size.height,
                 content = "${domain.expression}|||${domain.result}",
                 updatedAt = System.currentTimeMillis()
             )

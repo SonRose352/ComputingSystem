@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Position
+import com.example.computingsystem.domain.model.Size
 import com.example.computingsystem.domain.usecase.AddBoardNodeUseCase
+import com.example.computingsystem.domain.usecase.DeleteBoardNodeUseCase
 import com.example.computingsystem.domain.usecase.GetBoardNodesUseCase
 import com.example.computingsystem.domain.usecase.UpdateBoardNodeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +20,8 @@ import javax.inject.Inject
 class BoardViewModel @Inject constructor(
     getNodes: GetBoardNodesUseCase,
     private val addNode: AddBoardNodeUseCase,
-    private val updateNode: UpdateBoardNodeUseCase
+    private val updateNode: UpdateBoardNodeUseCase,
+    private val deleteNode: DeleteBoardNodeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BoardUiState())
@@ -36,6 +39,11 @@ class BoardViewModel @Inject constructor(
             is BoardAction.UpdateMathNode -> updateMathNode(action.nodeId, action.expression)
             is BoardAction.UpdateScale -> updateScale(action.scale)
             is BoardAction.UpdateOffset -> updateOffset(action.offset)
+            is BoardAction.SetActiveNode -> setActiveNode(action.nodeId)
+            is BoardAction.ClearActiveNode -> clearActiveNode()
+            is BoardAction.MoveNode -> moveNode(action.nodeId, action.newPosition)
+            is BoardAction.ResizeNode -> resizeNode(action.nodeId, action.newSize)
+            is BoardAction.DeleteNode -> deleteNodeAction(action.nodeId)
         }
     }
 
@@ -97,5 +105,42 @@ class BoardViewModel @Inject constructor(
     private fun updateOffset(offset: Offset) {
         _uiState.update { it.copy(offset = offset) }
         Log.i("BoardViewModel", "Offset updated: $offset")
+    }
+
+    private fun setActiveNode(nodeId: String?) {
+        _uiState.update { it.copy(activeNodeId = nodeId) }
+    }
+
+    private fun clearActiveNode() {
+        _uiState.update { it.copy(activeNodeId = null) }
+    }
+
+    private fun moveNode(nodeId: String, newPosition: Position) {
+        viewModelScope.launch {
+            val node = nodes.value.find { it.id == nodeId } ?: return@launch
+            val updatedNode = when (node) {
+                is BoardNode.TextNode -> node.copy(position = newPosition)
+                is BoardNode.MathNode -> node.copy(position = newPosition)
+            }
+            updateNode(updatedNode)
+        }
+    }
+
+    private fun resizeNode(nodeId: String, newSize: Size) {
+        viewModelScope.launch {
+            val node = nodes.value.find { it.id == nodeId } ?: return@launch
+            val updatedNode = when (node) {
+                is BoardNode.TextNode -> node.copy(size = newSize)
+                is BoardNode.MathNode -> node.copy(size = newSize)
+            }
+            updateNode(updatedNode)
+        }
+    }
+
+    private fun deleteNodeAction(nodeId: String) {
+        viewModelScope.launch {
+            deleteNode(nodeId)
+            clearActiveNode()
+        }
     }
 }
