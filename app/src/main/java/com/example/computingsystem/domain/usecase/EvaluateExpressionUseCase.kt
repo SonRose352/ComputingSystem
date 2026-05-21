@@ -24,7 +24,7 @@ class EvaluateExpressionUseCase @Inject constructor() {
         object : Function("fact", 1) {
             override fun apply(vararg args: Double): Double {
                 val n = args[0].toInt()
-                if (n < 0 || n > 20 || args[0] != n.toDouble()) {
+                if (n !in 0..20 || args[0] != n.toDouble()) {
                     throw ArithmeticException("Factorial only for integers 0-20")
                 }
                 return factorial(n).toDouble()

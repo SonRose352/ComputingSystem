@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,15 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +37,7 @@ import com.example.computingsystem.domain.model.Size
 import com.example.computingsystem.presentation.calculator.CalculatorAction
 import com.example.computingsystem.presentation.calculator.CalculatorViewModel
 import com.example.computingsystem.presentation.components.HistoryDialog
+import com.example.computingsystem.presentation.components.MathKeyboard
 
 @Composable
 fun BoardScreen(
@@ -51,12 +50,15 @@ fun BoardScreen(
 
     var showHistory by remember { mutableStateOf(false) }
 
+    val activeMathNode = remember(boardState.activeNodeId, nodes) {
+        nodes.find { it.id == boardState.activeNodeId } as? BoardNode.MathNode
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Бесконечный Canvas с узлами
         InfiniteCanvas(
             scale = boardState.scale,
             offset = boardState.offset,
@@ -78,15 +80,18 @@ fun BoardScreen(
             onTextNodeUpdate = { nodeId, text ->
                 boardViewModel.onAction(BoardAction.UpdateTextNode(nodeId, text))
             },
-            onMathNodeUpdate = { nodeId, expr ->
-                boardViewModel.onAction(BoardAction.UpdateMathNode(nodeId, expr))
-            },
             onNodeMove = { nodeId, newPos ->
                 boardViewModel.onAction(BoardAction.MoveNode(nodeId, newPos))
             },
             onNodeResize = { nodeId, newSize ->
                 boardViewModel.onAction(BoardAction.ResizeNode(nodeId, newSize))
-            }
+            },
+            onDeleteNode = { nodeId ->
+                boardViewModel.onAction(BoardAction.DeleteNode(nodeId))
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = if (activeMathNode != null) 300.dp else 0.dp)
         )
 
         // Кнопка "+" в левом верхнем углу
@@ -121,15 +126,11 @@ fun BoardScreen(
             ) {
                 DropdownMenuItem(
                     text = { Text("Текстовое поле") },
-                    onClick = {
-                        boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.TEXT))
-                    }
+                    onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.TEXT)) }
                 )
                 DropdownMenuItem(
                     text = { Text("Математическое выражение") },
-                    onClick = {
-                        boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.MATH))
-                    }
+                    onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.MATH)) }
                 )
             }
         }
@@ -147,26 +148,39 @@ fun BoardScreen(
                 .padding(6.dp)
         )
 
-        // Панель настроек активного нода внизу экрана
-        if (boardState.activeNodeId != null) {
-            NodeSettingsPanel(
-                onDelete = {
-                    boardViewModel.onAction(BoardAction.DeleteNode(boardState.activeNodeId!!))
-                },
+        // Математическая клавиатура снизу — только для активной матноды
+        if (activeMathNode != null) {
+            MathKeyboard(
+                tokens = boardState.mathTokens,
+                cursorPosition = boardState.mathCursorPosition,
+                onInput = { boardViewModel.onAction(BoardAction.MathKeyboardInput(it)) },
+                onBackspace = { boardViewModel.onAction(BoardAction.MathKeyboardBackspace) },
+                onClear = { boardViewModel.onAction(BoardAction.MathKeyboardClear) },
+                onMoveCursorLeft = { boardViewModel.onAction(BoardAction.MathKeyboardMoveCursorLeft) },
+                onMoveCursorRight = { boardViewModel.onAction(BoardAction.MathKeyboardMoveCursorRight) },
+                onSetCursor = { boardViewModel.onAction(BoardAction.MathKeyboardSetCursor(it)) },
+                onCalculate = { boardViewModel.onAction(BoardAction.MathKeyboardCalculate) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp)
+                    .height(300.dp)
             )
         }
     }
 
-    // Диалог истории
     if (showHistory) {
         HistoryDialog(
             history = history,
             onDismiss = { showHistory = false },
             onUseExpression = { expr ->
+                // Закрываем историю и переходим в режим размещения MathNode
+                // с готовыми expression и result из выбранной записи истории
                 showHistory = false
+                boardViewModel.onAction(
+                    BoardAction.PlaceMathNodeFromHistory(
+                        expression = expr.input,
+                        result = expr.result
+                    )
+                )
             },
             onDeleteExpression = { expr ->
                 calculatorViewModel.onAction(CalculatorAction.DeleteFromHistory(expr))
@@ -177,6 +191,8 @@ fun BoardScreen(
         )
     }
 }
+
+// ─── InfiniteCanvas ──────────────────────────────────────────────────────────
 
 @Composable
 private fun InfiniteCanvas(
@@ -190,20 +206,19 @@ private fun InfiniteCanvas(
     onCanvasTap: (Offset) -> Unit,
     onNodeClick: (String) -> Unit,
     onTextNodeUpdate: (String, String) -> Unit,
-    onMathNodeUpdate: (String, String) -> Unit,
     onNodeMove: (String, Position) -> Unit,
-    onNodeResize: (String, Size) -> Unit
+    onNodeResize: (String, Size) -> Unit,
+    onDeleteNode: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
         val newScale = (scale * zoomChange).coerceIn(0.1f, 5f)
         val newOffset = offset + panChange
-
         onScaleChange(newScale)
         onOffsetChange(newOffset)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Сетка с жестами
+    Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -220,9 +235,7 @@ private fun InfiniteCanvas(
                         Modifier
                             .transformable(state = transformState)
                             .pointerInput(Unit) {
-                                detectTapGestures { tapOffset ->
-                                    onCanvasTap(Offset.Zero)
-                                }
+                                detectTapGestures { onCanvasTap(Offset.Zero) }
                             }
                     }
                 )
@@ -233,7 +246,6 @@ private fun InfiniteCanvas(
                 val endX = ((size.width - offset.x) / gridSize).toInt() + 1
                 val startY = (-offset.y / gridSize).toInt() - 1
                 val endY = ((size.height - offset.y) / gridSize).toInt() + 1
-
                 val gridColor = Color.Gray.copy(alpha = 0.2f)
 
                 for (i in startX..endX) {
@@ -244,7 +256,6 @@ private fun InfiniteCanvas(
                         strokeWidth = 1f
                     )
                 }
-
                 for (i in startY..endY) {
                     drawLine(
                         color = gridColor,
@@ -256,73 +267,79 @@ private fun InfiniteCanvas(
             }
         }
 
-        // Узлы поверх сетки
-        val density = LocalDensity.current
-
         nodes.forEach { node ->
-            val screenXPx = node.position.x * scale + offset.x
-            val screenYPx = node.position.y * scale + offset.y
-
-            val screenX = with(density) { screenXPx.toDp() }
-            val screenY = with(density) { screenYPx.toDp() }
-
             when (node) {
-                is BoardNode.TextNode -> {
-                    TextNodeView(
-                        node = node,
-                        offset = offset,
-                        scale = scale,
-                        isActive = node.id == activeNodeId,
+                is BoardNode.TextNode -> TextNodeView(
+                    node = node,
+                    offset = offset,
+                    scale = scale,
+                    isActive = node.id == activeNodeId,
+                    onTextChange = { onTextNodeUpdate(node.id, it) },
+                    onClick = { onNodeClick(node.id) },
+                    onMoveFinished = { onNodeMove(node.id, it) },
+                    onResizeFinished = { onNodeResize(node.id, it) },
+                    onDelete = { onDeleteNode(node.id) }
+                )
 
-                        onTextChange = {
-                            onTextNodeUpdate(node.id, it)
-                        },
-
-                        onClick = {
-                            onNodeClick(node.id)
-                        },
-
-                        onMoveFinished = { newPosition ->
-                            onNodeMove(node.id, newPosition)
-                        },
-
-                        onResizeFinished = { newSize ->
-                            onNodeResize(node.id, newSize)
-                        }
-                    )
-                }
-
-                is BoardNode.MathNode -> {
-                    MathNodeView(
-                        node = node,
-
-                        offset = offset,
-
-                        scale = scale,
-
-                        isActive = node.id == activeNodeId,
-
-                        onExpressionChange = {
-                            onMathNodeUpdate(node.id, it)
-                        },
-
-                        onClick = {
-                            onNodeClick(node.id)
-                        },
-
-                        onMoveFinished = { newPosition ->
-                            onNodeMove(node.id, newPosition)
-                        },
-
-                        onResizeFinished = { newSize ->
-                            onNodeResize(node.id, newSize)
-                        }
-                    )
-                }
+                is BoardNode.MathNode -> MathNodeView(
+                    node = node,
+                    offset = offset,
+                    scale = scale,
+                    isActive = node.id == activeNodeId,
+                    onClick = { onNodeClick(node.id) },
+                    onMoveFinished = { onNodeMove(node.id, it) },
+                    onResizeFinished = { onNodeResize(node.id, it) },
+                    onDelete = { onDeleteNode(node.id) }
+                )
             }
         }
     }
 }
+
+// ─── Меню с тремя точками внутри ноды ───────────────────────────────────────
+
+@Composable
+private fun NodeOptionsMenu(
+    onDelete: () -> Unit,
+    iconSizeDp: androidx.compose.ui.unit.Dp
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.size(iconSizeDp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Настройки",
+                modifier = Modifier.fillMaxSize(0.6f)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                }
+            )
+        }
+    }
+}
+
+// ─── TextNodeView ────────────────────────────────────────────────────────────
 
 @Composable
 private fun TextNodeView(
@@ -333,219 +350,127 @@ private fun TextNodeView(
     onTextChange: (String) -> Unit,
     onClick: () -> Unit,
     onMoveFinished: (Position) -> Unit,
-    onResizeFinished: (Size) -> Unit
+    onResizeFinished: (Size) -> Unit,
+    onDelete: () -> Unit
 ) {
-
-    var text by remember(node.id) {
-        mutableStateOf(node.text)
-    }
-
-    var localPosition by remember(node.id) {
-        mutableStateOf(node.position)
-    }
-
-    var localSize by remember(node.id) {
-        mutableStateOf(node.size)
-    }
+    var text by remember(node.id) { mutableStateOf(node.text) }
+    var localPosition by remember(node.id) { mutableStateOf(node.position) }
+    var localSize by remember(node.id) { mutableStateOf(node.size) }
 
     val density = LocalDensity.current
 
-    val scaledPadding = (20 * scale).dp
-    val scaledFont = (14 * scale).sp
-    val scaledBorder = (2 * scale).dp
-    val scaledHandle = (24 * scale).dp
-    val scaledCorner = (8 * scale).dp
-    val scaledElevation = (4 * scale).dp
+    val scaledPadding   = (14 * scale).dp
+    val scaledFont      = (14 * scale).sp
+    val scaledBorder    = (2  * scale).dp
+    val scaledHandle    = (24 * scale).dp
+    val scaledCorner    = (8  * scale).dp
+    val scaledElevation = (4  * scale).dp
+    val scaledMenuIcon  = (26 * scale).dp
 
-    LaunchedEffect(node.position) {
-        localPosition = node.position
-    }
-
-    LaunchedEffect(node.size) {
-        localSize = node.size
-    }
-
+    LaunchedEffect(node.position) { localPosition = node.position }
+    LaunchedEffect(node.size)     { localSize = node.size }
     LaunchedEffect(text) {
-
         if (text != node.text) {
-
             kotlinx.coroutines.delay(300)
-
             onTextChange(text)
         }
     }
 
-    val localScreenX = with(density) {
-        (localPosition.x * scale + offset.x).toDp()
-    }
-
-    val localScreenY = with(density) {
-        (localPosition.y * scale + offset.y).toDp()
-    }
+    val localScreenX = with(density) { (localPosition.x * scale + offset.x).toDp() }
+    val localScreenY = with(density) { (localPosition.y * scale + offset.y).toDp() }
 
     Box(
         modifier = Modifier
             .offset(localScreenX, localScreenY)
-
-            .width(
-                with(density) {
-                    (localSize.width * scale).toDp()
-                }
-            )
-
-            .height(
-                with(density) {
-                    (localSize.height * scale).toDp()
-                }
-            )
+            .width(with(density)  { (localSize.width  * scale).toDp() })
+            .height(with(density) { (localSize.height * scale).toDp() })
     ) {
-
         Card(
             modifier = Modifier
                 .fillMaxSize()
-
                 .border(
                     width = if (isActive) scaledBorder else 0.dp,
-                    color = if (isActive)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        Color.Transparent,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else Color.Transparent,
                     shape = RoundedCornerShape(scaledCorner)
                 )
-
-                .pointerInput(isActive) {
-
-                    detectTapGestures {
-                        onClick()
-                    }
-                }
-
+                .pointerInput(isActive) { detectTapGestures { onClick() } }
                 .then(
-
-                    if (isActive) {
-
-                        Modifier.pointerInput(scale) {
-
-                            detectDragGestures(
-
-                                onDragEnd = {
-                                    onMoveFinished(localPosition)
-                                }
-
-                            ) { change, dragAmount ->
-
-                                change.consume()
-
-                                localPosition = Position(
-                                    localPosition.x + dragAmount.x / scale,
-                                    localPosition.y + dragAmount.y / scale
-                                )
-                            }
-                        }
-
-                    } else Modifier
-                ),
-
-            shape = RoundedCornerShape(scaledCorner),
-
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-
-            elevation = CardDefaults.cardElevation(scaledElevation)
-
-        ) {
-
-            BasicTextField(
-
-                value = text,
-
-                onValueChange = {
-                    text = it
-                },
-
-                enabled = isActive,
-
-                textStyle = TextStyle(
-                    fontSize = scaledFont,
-
-                    lineHeight = scaledFont,
-
-                    color = MaterialTheme.colorScheme.onSurface,
-
-                    platformStyle = PlatformTextStyle(
-                        includeFontPadding = false
-                    )
-                ),
-
-                modifier = Modifier
-                    .fillMaxSize(),
-
-                decorationBox = { innerTextField ->
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(scaledPadding)
-                    ) {
-
-                        if (text.isEmpty()) {
-
-                            Text(
-                                text = "Введите текст...",
-
-                                style = TextStyle(
-                                    fontSize = scaledFont,
-
-                                    lineHeight = scaledFont,
-
-                                    platformStyle = PlatformTextStyle(
-                                        includeFontPadding = false
-                                    )
-                                )
+                    if (isActive) Modifier.pointerInput(scale) {
+                        detectDragGestures(onDragEnd = { onMoveFinished(localPosition) }) { change, dragAmount ->
+                            change.consume()
+                            localPosition = Position(
+                                localPosition.x + dragAmount.x / scale,
+                                localPosition.y + dragAmount.y / scale
                             )
                         }
-
-                        innerTextField()
+                    } else Modifier
+                ),
+            shape = RoundedCornerShape(scaledCorner),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(scaledElevation)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Текстовое поле со сдвигом сверху, чтобы не перекрывать кнопку меню
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    enabled = isActive,
+                    textStyle = TextStyle(
+                        fontSize = scaledFont,
+                        lineHeight = scaledFont,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = scaledPadding,
+                            end = scaledPadding + scaledPadding / 2,
+                            top = scaledPadding,
+                            bottom = scaledPadding
+                        ),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (text.isEmpty()) {
+                                Text(
+                                    text = "Введите текст...",
+                                    style = TextStyle(
+                                        fontSize = scaledFont,
+                                        lineHeight = scaledFont,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                    )
+                                )
+                            }
+                            innerTextField()
+                        }
                     }
+                )
+
+                // Кнопка три точки — правый верхний угол, всегда видна
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                    NodeOptionsMenu(
+                        onDelete = onDelete,
+                        iconSizeDp = scaledMenuIcon
+                    )
                 }
-            )
+            }
         }
 
+        // Ручка изменения размера — правый нижний угол, только когда активна
         if (isActive) {
-
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-
                     .size(scaledHandle)
-
                     .clip(CircleShape)
-
                     .background(MaterialTheme.colorScheme.primary)
-
                     .pointerInput(scale) {
-
-                        detectDragGestures(
-
-                            onDragEnd = {
-                                onResizeFinished(localSize)
-                            }
-
-                        ) { change, dragAmount ->
-
+                        detectDragGestures(onDragEnd = { onResizeFinished(localSize) }) { change, dragAmount ->
                             change.consume()
-
                             localSize = Size(
-                                width = (
-                                        localSize.width +
-                                                dragAmount.x / scale
-                                        ).coerceAtLeast(100f),
-
-                                height = (
-                                        localSize.height +
-                                                dragAmount.y / scale
-                                        ).coerceAtLeast(50f)
+                                width  = (localSize.width  + dragAmount.x / scale).coerceAtLeast(100f),
+                                height = (localSize.height + dragAmount.y / scale).coerceAtLeast(50f)
                             )
                         }
                     }
@@ -553,6 +478,8 @@ private fun TextNodeView(
         }
     }
 }
+
+// ─── MathNodeView ────────────────────────────────────────────────────────────
 
 @Composable
 private fun MathNodeView(
@@ -560,294 +487,143 @@ private fun MathNodeView(
     offset: Offset,
     scale: Float,
     isActive: Boolean,
-    onExpressionChange: (String) -> Unit,
     onClick: () -> Unit,
     onMoveFinished: (Position) -> Unit,
-    onResizeFinished: (Size) -> Unit
+    onResizeFinished: (Size) -> Unit,
+    onDelete: () -> Unit
 ) {
-
-    var expression by remember(node.id) {
-        mutableStateOf(node.expression)
-    }
-
-    var localPosition by remember(node.id) {
-        mutableStateOf(node.position)
-    }
-
-    var localSize by remember(node.id) {
-        mutableStateOf(node.size)
-    }
+    var localPosition by remember(node.id) { mutableStateOf(node.position) }
+    var localSize     by remember(node.id) { mutableStateOf(node.size) }
 
     val density = LocalDensity.current
 
-    val scaledPadding = (20 * scale).dp
-    val scaledFont = (14 * scale).sp
-    val scaledResultFont = (16 * scale).sp
-    val scaledBorder = (2 * scale).dp
-    val scaledHandle = (24 * scale).dp
-    val scaledCorner = (8 * scale).dp
-    val scaledElevation = (4 * scale).dp
-    val scaledResultSpacing = (6 * scale).dp
+    val scaledPadding       = (14 * scale).dp
+    val scaledFont          = (14 * scale).sp
+    val scaledResultFont    = (16 * scale).sp
+    val scaledBorder        = (2  * scale).dp
+    val scaledHandle        = (24 * scale).dp
+    val scaledCorner        = (8  * scale).dp
+    val scaledElevation     = (4  * scale).dp
+    val scaledResultSpacing = (6  * scale).dp
+    val scaledMenuIcon      = (32 * scale).dp
 
-    LaunchedEffect(node.position) {
-        localPosition = node.position
-    }
+    LaunchedEffect(node.position) { localPosition = node.position }
+    LaunchedEffect(node.size)     { localSize = node.size }
 
-    LaunchedEffect(node.size) {
-        localSize = node.size
-    }
-
-    LaunchedEffect(expression) {
-
-        if (expression != node.expression) {
-
-            kotlinx.coroutines.delay(300)
-
-            onExpressionChange(expression)
-        }
-    }
-
-    val localScreenX = with(density) {
-        (localPosition.x * scale + offset.x).toDp()
-    }
-
-    val localScreenY = with(density) {
-        (localPosition.y * scale + offset.y).toDp()
-    }
+    val localScreenX = with(density) { (localPosition.x * scale + offset.x).toDp() }
+    val localScreenY = with(density) { (localPosition.y * scale + offset.y).toDp() }
 
     Box(
         modifier = Modifier
             .offset(localScreenX, localScreenY)
-
-            .width(
-                with(density) {
-                    (localSize.width * scale).toDp()
-                }
-            )
-
-            .height(
-                with(density) {
-                    (localSize.height * scale).toDp()
-                }
-            )
+            .width(with(density)  { (localSize.width  * scale).toDp() })
+            .height(with(density) { (localSize.height * scale).toDp() })
     ) {
-
         Card(
             modifier = Modifier
                 .fillMaxSize()
-
                 .border(
                     width = if (isActive) scaledBorder else 0.dp,
-                    color = if (isActive)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        Color.Transparent,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else Color.Transparent,
                     shape = RoundedCornerShape(scaledCorner)
                 )
+                .pointerInput(isActive) { detectTapGestures { onClick() } }
+                .then(
+                    if (isActive) Modifier.pointerInput(scale) {
+                        detectDragGestures(onDragEnd = { onMoveFinished(localPosition) }) { change, dragAmount ->
+                            change.consume()
+                            localPosition = Position(
+                                localPosition.x + dragAmount.x / scale,
+                                localPosition.y + dragAmount.y / scale
+                            )
+                        }
+                    } else Modifier
+                ),
+            shape = RoundedCornerShape(scaledCorner),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            ),
+            elevation = CardDefaults.cardElevation(scaledElevation)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Выражение и результат со сдвигом сверху
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = scaledPadding,
+                            end = scaledPadding + scaledPadding / 2,
+                            top = scaledPadding,
+                            bottom = scaledPadding
+                        )
+                ) {
+                    if (node.expression.isEmpty()) {
+                        Text(
+                            text = if (isActive) "Используйте клавиатуру снизу..." else "Введите выражение...",
+                            style = TextStyle(
+                                fontSize = scaledFont,
+                                lineHeight = scaledFont,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
+                        )
+                    } else {
+                        Text(
+                            text = node.expression,
+                            style = TextStyle(
+                                fontSize = scaledFont,
+                                lineHeight = scaledFont,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
+                        )
+                    }
 
-                .pointerInput(isActive) {
-
-                    detectTapGestures {
-                        onClick()
+                    if (node.result.isNotEmpty()) {
+                        Text(
+                            text = "= ${node.result}",
+                            style = TextStyle(
+                                fontSize = scaledResultFont,
+                                lineHeight = scaledResultFont,
+                                color = if (node.result == "Ошибка")
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.primary,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            ),
+                            modifier = Modifier.padding(top = scaledResultSpacing)
+                        )
                     }
                 }
 
-                .then(
-
-                    if (isActive) {
-
-                        Modifier.pointerInput(scale) {
-
-                            detectDragGestures(
-
-                                onDragEnd = {
-                                    onMoveFinished(localPosition)
-                                }
-
-                            ) { change, dragAmount ->
-
-                                change.consume()
-
-                                localPosition = Position(
-                                    localPosition.x + dragAmount.x / scale,
-                                    localPosition.y + dragAmount.y / scale
-                                )
-                            }
-                        }
-
-                    } else Modifier
-                ),
-
-            shape = RoundedCornerShape(scaledCorner),
-
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme
-                    .colorScheme
-                    .primaryContainer
-                    .copy(alpha = 0.3f)
-            ),
-
-            elevation = CardDefaults.cardElevation(scaledElevation)
-
-        ) {
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(scaledPadding)
-            ) {
-
-                BasicTextField(
-
-                    value = expression,
-
-                    onValueChange = {
-                        expression = it
-                    },
-
-                    enabled = isActive,
-
-                    textStyle = TextStyle(
-                        fontSize = scaledFont,
-
-                        lineHeight = scaledFont,
-
-                        color = MaterialTheme.colorScheme.onSurface,
-
-                        platformStyle = PlatformTextStyle(
-                            includeFontPadding = false
-                        )
-                    ),
-
-                    modifier = Modifier.fillMaxWidth(),
-
-                    decorationBox = { innerTextField ->
-
-                        Box {
-
-                            if (expression.isEmpty()) {
-
-                                Text(
-                                    text = "Введите выражение...",
-
-                                    style = TextStyle(
-                                        fontSize = scaledFont,
-
-                                        lineHeight = scaledFont,
-
-                                        color = MaterialTheme
-                                            .colorScheme
-                                            .onSurfaceVariant,
-
-                                        platformStyle = PlatformTextStyle(
-                                            includeFontPadding = false
-                                        )
-                                    )
-                                )
-                            }
-
-                            innerTextField()
-                        }
-                    }
-                )
-
-                if (node.result.isNotEmpty()) {
-
-                    Text(
-                        text = "= ${node.result}",
-
-                        style = TextStyle(
-                            fontSize = scaledResultFont,
-
-                            lineHeight = scaledResultFont,
-
-                            color = MaterialTheme.colorScheme.primary,
-
-                            platformStyle = PlatformTextStyle(
-                                includeFontPadding = false
-                            )
-                        ),
-
-                        modifier = Modifier.padding(
-                            top = scaledResultSpacing
-                        )
+                // Кнопка три точки — правый верхний угол
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                    NodeOptionsMenu(
+                        onDelete = onDelete,
+                        iconSizeDp = scaledMenuIcon
                     )
                 }
             }
         }
 
+        // Ручка изменения размера
         if (isActive) {
-
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-
                     .size(scaledHandle)
-
                     .clip(CircleShape)
-
                     .background(MaterialTheme.colorScheme.primary)
-
                     .pointerInput(scale) {
-
-                        detectDragGestures(
-
-                            onDragEnd = {
-                                onResizeFinished(localSize)
-                            }
-
-                        ) { change, dragAmount ->
-
+                        detectDragGestures(onDragEnd = { onResizeFinished(localSize) }) { change, dragAmount ->
                             change.consume()
-
                             localSize = Size(
-                                width = (
-                                        localSize.width +
-                                                dragAmount.x / scale
-                                        ).coerceAtLeast(150f),
-
-                                height = (
-                                        localSize.height +
-                                                dragAmount.y / scale
-                                        ).coerceAtLeast(80f)
+                                width  = (localSize.width  + dragAmount.x / scale).coerceAtLeast(150f),
+                                height = (localSize.height + dragAmount.y / scale).coerceAtLeast(80f)
                             )
                         }
                     }
             )
-        }
-    }
-}
-
-@Composable
-private fun NodeSettingsPanel(
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        tonalElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Настройки узла",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Удалить",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
         }
     }
 }
