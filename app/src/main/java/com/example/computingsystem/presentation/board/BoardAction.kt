@@ -30,4 +30,12 @@ sealed class BoardAction {
     data object MathKeyboardMoveCursorRight : BoardAction()
     data class MathKeyboardSetCursor(val position: Int) : BoardAction()
     data object MathKeyboardCalculate : BoardAction()
+
+    data class PinNode(val nodeId: String) : BoardAction()
+    data class UnpinNode(val nodeId: String) : BoardAction()
+    data class TriggerMerge(val dialogScreenOffset: Offset) : BoardAction()
+    data class SetMergeOperator(val operator: String) : BoardAction()
+    data object SwapMergeValues : BoardAction()
+    data object ConfirmMerge : BoardAction()
+    data object DismissMerge : BoardAction()
 }

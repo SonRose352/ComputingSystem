@@ -39,8 +39,7 @@ class BoardViewModel @Inject constructor(
     private val functionTokens = setOf(
         "sin(", "cos(", "tan(", "sqrt(",
         "asin(", "acos(", "atan(",
-        "ln(", "lg(",
-        "^(-1)"
+        "ln(", "lg(", "^(-1)"
     )
 
     fun onAction(action: BoardAction) {
@@ -65,10 +64,15 @@ class BoardViewModel @Inject constructor(
             is BoardAction.MathKeyboardMoveCursorRight -> mathMoveCursorRight()
             is BoardAction.MathKeyboardSetCursor       -> mathSetCursor(action.position)
             is BoardAction.MathKeyboardCalculate       -> mathCalculate()
+            is BoardAction.PinNode                     -> pinNode(action.nodeId)
+            is BoardAction.UnpinNode                   -> unpinNode(action.nodeId)
+            is BoardAction.TriggerMerge                -> triggerMerge(action.dialogScreenOffset)
+            is BoardAction.SetMergeOperator            -> setMergeOperator(action.operator)
+            is BoardAction.SwapMergeValues             -> swapMergeValues()
+            is BoardAction.ConfirmMerge                -> confirmMerge()
+            is BoardAction.DismissMerge                -> dismissMerge()
         }
     }
-
-    // ─── Базовые действия ────────────────────────────────────────────────────
 
     private fun toggleAddMenu() {
         _uiState.update { it.copy(showAddMenu = !it.showAddMenu) }
@@ -79,17 +83,12 @@ class BoardViewModel @Inject constructor(
             it.copy(
                 selectedNodeType = type,
                 showAddMenu = false,
-                // Сбрасываем pending при ручном выборе типа
                 pendingExpression = null,
                 pendingResult = null
             )
         }
     }
 
-    /**
-     * Переводит доску в режим размещения MathNode с готовым выражением из истории.
-     * Пользователь видит курсор размещения, тапает — нода появляется заполненной.
-     */
     private fun placeMathNodeFromHistory(expression: String, result: String) {
         _uiState.update {
             it.copy(
@@ -104,19 +103,14 @@ class BoardViewModel @Inject constructor(
     private fun placeNode(canvasOffset: Offset) {
         val state = _uiState.value
         val nodeType = state.selectedNodeType ?: return
-
         val node = when (nodeType) {
-            NodeType.TEXT -> BoardNode.TextNode(
-                position = Position(canvasOffset.x, canvasOffset.y)
-            )
+            NodeType.TEXT -> BoardNode.TextNode(position = Position(canvasOffset.x, canvasOffset.y))
             NodeType.MATH -> BoardNode.MathNode(
                 position = Position(canvasOffset.x, canvasOffset.y),
-                // Если размещаем из истории — подставляем готовые значения
                 expression = state.pendingExpression ?: "",
                 result = state.pendingResult ?: ""
             )
         }
-
         viewModelScope.launch {
             addNode(node)
             _uiState.update {
@@ -148,12 +142,9 @@ class BoardViewModel @Inject constructor(
 
     private fun setActiveNode(nodeId: String?) {
         _uiState.update { it.copy(activeNodeId = nodeId) }
-
         if (nodeId != null) {
             val node = nodes.value.find { it.id == nodeId }
-            if (node is BoardNode.MathNode) {
-                initMathNode(nodeId, node.expression)
-            }
+            if (node is BoardNode.MathNode) initMathNode(nodeId, node.expression)
         }
     }
 
@@ -163,39 +154,35 @@ class BoardViewModel @Inject constructor(
             val node = nodes.value.find { it.id == activeId }
             if (node is BoardNode.MathNode) {
                 val expression = _uiState.value.mathTokens.joinToString("")
-                if (expression != node.expression) {
-                    saveMathExpression(activeId, expression)
-                }
+                if (expression != node.expression) saveMathExpression(activeId, expression)
             }
         }
         _uiState.update {
-            it.copy(
-                activeNodeId = null,
-                mathTokens = emptyList(),
-                mathCursorPosition = 0
-            )
+            it.copy(activeNodeId = null, mathTokens = emptyList(), mathCursorPosition = 0)
         }
     }
 
     private fun moveNode(nodeId: String, newPosition: Position) {
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } ?: return@launch
-            val updatedNode = when (node) {
-                is BoardNode.TextNode -> node.copy(position = newPosition)
-                is BoardNode.MathNode -> node.copy(position = newPosition)
-            }
-            updateNode(updatedNode)
+            updateNode(
+                when (node) {
+                    is BoardNode.TextNode -> node.copy(position = newPosition)
+                    is BoardNode.MathNode -> node.copy(position = newPosition)
+                }
+            )
         }
     }
 
     private fun resizeNode(nodeId: String, newSize: Size) {
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } ?: return@launch
-            val updatedNode = when (node) {
-                is BoardNode.TextNode -> node.copy(size = newSize)
-                is BoardNode.MathNode -> node.copy(size = newSize)
-            }
-            updateNode(updatedNode)
+            updateNode(
+                when (node) {
+                    is BoardNode.TextNode -> node.copy(size = newSize)
+                    is BoardNode.MathNode -> node.copy(size = newSize)
+                }
+            )
         }
     }
 
@@ -206,52 +193,150 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    // ─── Математическая клавиатура ───────────────────────────────────────────
+    private fun pinNode(nodeId: String) {
+        val node = nodes.value.find { it.id == nodeId } as? BoardNode.MathNode ?: return
+        // Нода должна иметь вычисленный результат, чтобы её можно было слить
+        if (node.result.isEmpty() || node.result == "Ошибка") return
+
+        _uiState.update { state ->
+            when {
+                // Уже зажата эта же нода — игнорируем
+                state.pinnedNodeId == nodeId || state.secondPinnedNodeId == nodeId -> state
+                // Первая нода ещё не выбрана
+                state.pinnedNodeId == null -> state.copy(pinnedNodeId = nodeId)
+                // Первая уже есть — ставим вторую
+                else -> state.copy(secondPinnedNodeId = nodeId)
+            }
+        }
+    }
+
+    private fun unpinNode(nodeId: String) {
+        _uiState.update { state ->
+            if (state.showMergeDialog) return@update state
+            state.copy(
+                pinnedNodeId   = if (state.pinnedNodeId   == nodeId) null else state.pinnedNodeId,
+                secondPinnedNodeId = if (state.secondPinnedNodeId == nodeId) null else state.secondPinnedNodeId
+            )
+        }
+    }
+
+    private fun triggerMerge(dialogScreenOffset: Offset) {
+        val state = _uiState.value
+        val idA = state.pinnedNodeId ?: return
+        val idB = state.secondPinnedNodeId ?: return
+
+        val nodeA = nodes.value.find { it.id == idA } as? BoardNode.MathNode ?: return
+        val nodeB = nodes.value.find { it.id == idB } as? BoardNode.MathNode ?: return
+
+        _uiState.update {
+            it.copy(
+                showMergeDialog  = true,
+                mergeValueA      = nodeA.result,
+                mergeValueB      = nodeB.result,
+                mergeOperator    = "+",
+                mergeDialogOffset = dialogScreenOffset
+            )
+        }
+    }
+
+    private fun setMergeOperator(operator: String) {
+        _uiState.update { it.copy(mergeOperator = operator) }
+    }
+
+    private fun swapMergeValues() {
+        _uiState.update { it.copy(mergeValueA = it.mergeValueB, mergeValueB = it.mergeValueA) }
+    }
+
+    private fun confirmMerge() {
+        val state = _uiState.value
+        val idA = state.pinnedNodeId ?: return
+        val idB = state.secondPinnedNodeId ?: return
+
+        val nodeA = nodes.value.find { it.id == idA } as? BoardNode.MathNode ?: return
+        val nodeB = nodes.value.find { it.id == idB } as? BoardNode.MathNode ?: return
+
+        val expression = "${state.mergeValueA}${state.mergeOperator}${state.mergeValueB}"
+
+        val midX = (nodeA.position.x + nodeB.position.x) / 2f
+        val midY = (nodeA.position.y + nodeB.position.y) / 2f
+
+        evaluate(expression, AngleMode.RAD).fold(
+            onSuccess = { result ->
+                viewModelScope.launch {
+                    deleteNode(idA)
+                    deleteNode(idB)
+
+                    val newNode = BoardNode.MathNode(
+                        position   = Position(midX, midY),
+                        expression = expression,
+                        result     = result
+                    )
+                    addNode(newNode)
+
+                    saveExpression(Expression(input = expression, result = result))
+                }
+            },
+            onFailure = {
+                viewModelScope.launch {
+                    deleteNode(idA)
+                    deleteNode(idB)
+                    addNode(
+                        BoardNode.MathNode(
+                            position   = Position(midX, midY),
+                            expression = expression,
+                            result     = "Ошибка"
+                        )
+                    )
+                }
+            }
+        )
+
+        resetMergeState()
+    }
+
+    private fun dismissMerge() {
+        resetMergeState()
+    }
+
+    private fun resetMergeState() {
+        _uiState.update {
+            it.copy(
+                pinnedNodeId       = null,
+                secondPinnedNodeId = null,
+                showMergeDialog    = false,
+                mergeValueA        = "",
+                mergeValueB        = "",
+                mergeOperator      = "+",
+                mergeDialogOffset  = Offset.Zero
+            )
+        }
+    }
 
     private fun tokenizeExpression(expression: String): List<String> {
         if (expression.isEmpty()) return emptyList()
-
         val tokens = mutableListOf<String>()
         var i = 0
         val knownFunctions = listOf(
             "asin(", "acos(", "atan(",
             "sin(", "cos(", "tan(",
-            "sqrt(", "ln(", "lg(",
-            "^(-1)"
+            "sqrt(", "ln(", "lg(", "^(-1)"
         )
-
         while (i < expression.length) {
-            val matchedFunction = knownFunctions.firstOrNull { func ->
-                expression.startsWith(func, i)
-            }
-            if (matchedFunction != null) {
-                tokens.add(matchedFunction)
-                i += matchedFunction.length
-                continue
-            }
+            val matched = knownFunctions.firstOrNull { expression.startsWith(it, i) }
+            if (matched != null) { tokens.add(matched); i += matched.length; continue }
             if (expression[i].isDigit() || expression[i] == '.') {
-                val numStart = i
-                while (i < expression.length && (expression[i].isDigit() || expression[i] == '.')) {
-                    i++
-                }
-                tokens.add(expression.substring(numStart, i))
-                continue
+                val start = i
+                while (i < expression.length && (expression[i].isDigit() || expression[i] == '.')) i++
+                tokens.add(expression.substring(start, i)); continue
             }
-            tokens.add(expression[i].toString())
-            i++
+            tokens.add(expression[i].toString()); i++
         }
-
         return tokens
     }
 
     private fun initMathNode(nodeId: String, expression: String) {
         val tokens = tokenizeExpression(expression)
-        _uiState.update {
-            it.copy(
-                mathTokens = tokens,
-                mathCursorPosition = tokens.size
-            )
-        }
+        _uiState.update { it.copy(mathTokens = tokens, mathCursorPosition = tokens.size) }
     }
 
     private fun mathInput(value: String) {
@@ -266,20 +351,17 @@ class BoardViewModel @Inject constructor(
     private fun mathBackspace() {
         _uiState.update { state ->
             if (state.mathTokens.isEmpty() || state.mathCursorPosition == 0) return@update state
-
             val pos = state.mathCursorPosition
-            val tokenToDelete = state.mathTokens[pos - 1]
+            val token = state.mathTokens[pos - 1]
             val newTokens = state.mathTokens.toMutableList()
-
-            if (tokenToDelete in functionTokens) {
+            if (token in functionTokens) {
                 newTokens.removeAt(pos - 1)
-            } else if (tokenToDelete.length > 1) {
-                newTokens[pos - 1] = tokenToDelete.dropLast(1)
+            } else if (token.length > 1) {
+                newTokens[pos - 1] = token.dropLast(1)
                 return@update state.copy(mathTokens = newTokens)
             } else {
                 newTokens.removeAt(pos - 1)
             }
-
             state.copy(mathTokens = newTokens, mathCursorPosition = pos - 1)
         }
         scheduleEvaluation()
@@ -296,16 +378,14 @@ class BoardViewModel @Inject constructor(
 
     private fun mathMoveCursorLeft() {
         _uiState.update { state ->
-            if (state.mathCursorPosition > 0)
-                state.copy(mathCursorPosition = state.mathCursorPosition - 1)
+            if (state.mathCursorPosition > 0) state.copy(mathCursorPosition = state.mathCursorPosition - 1)
             else state
         }
     }
 
     private fun mathMoveCursorRight() {
         _uiState.update { state ->
-            if (state.mathCursorPosition < state.mathTokens.size)
-                state.copy(mathCursorPosition = state.mathCursorPosition + 1)
+            if (state.mathCursorPosition < state.mathTokens.size) state.copy(mathCursorPosition = state.mathCursorPosition + 1)
             else state
         }
     }
@@ -316,38 +396,26 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Вычисляет результат, сохраняет его в ноду и пишет запись в историю вычислений.
-     */
     private fun mathCalculate() {
         val state = _uiState.value
         val activeId = state.activeNodeId ?: return
         var expression = state.mathTokens.joinToString("")
-
         if (expression.isEmpty()) return
-
         val missing = expression.count { it == '(' } - expression.count { it == ')' }
         if (missing > 0) expression += ")".repeat(missing)
-
-        val finalExpression = expression
-
-        evaluate(finalExpression, AngleMode.RAD).fold(
+        val final = expression
+        evaluate(final, AngleMode.RAD).fold(
             onSuccess = { result ->
                 viewModelScope.launch {
-                    // 1. Обновляем ноду
-                    val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode
-                        ?: return@launch
-                    updateNode(node.copy(expression = finalExpression, result = result))
-
-                    // 2. Сохраняем в историю вычислений
-                    saveExpression(Expression(input = finalExpression, result = result))
+                    val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode ?: return@launch
+                    updateNode(node.copy(expression = final, result = result))
+                    saveExpression(Expression(input = final, result = result))
                 }
             },
             onFailure = {
                 viewModelScope.launch {
-                    val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode
-                        ?: return@launch
-                    updateNode(node.copy(expression = finalExpression, result = "Ошибка"))
+                    val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode ?: return@launch
+                    updateNode(node.copy(expression = final, result = "Ошибка"))
                 }
             }
         )
@@ -357,22 +425,12 @@ class BoardViewModel @Inject constructor(
         val state = _uiState.value
         val activeId = state.activeNodeId ?: return
         var expression = state.mathTokens.joinToString("")
-
-        if (expression.isEmpty()) {
-            saveMathExpression(activeId, "", "")
-            return
-        }
-
+        if (expression.isEmpty()) { saveMathExpression(activeId, "", ""); return }
         val missing = expression.count { it == '(' } - expression.count { it == ')' }
         if (missing > 0) expression += ")".repeat(missing)
-
         evaluate(expression, AngleMode.RAD).fold(
-            onSuccess = { result ->
-                saveMathExpression(activeId, state.mathTokens.joinToString(""), result)
-            },
-            onFailure = {
-                saveMathExpression(activeId, state.mathTokens.joinToString(""), "")
-            }
+            onSuccess = { result -> saveMathExpression(activeId, state.mathTokens.joinToString(""), result) },
+            onFailure = { saveMathExpression(activeId, state.mathTokens.joinToString(""), "") }
         )
     }
 

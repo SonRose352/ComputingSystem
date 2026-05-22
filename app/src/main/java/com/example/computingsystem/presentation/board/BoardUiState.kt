@@ -5,7 +5,6 @@ import androidx.compose.ui.geometry.Offset
 data class BoardUiState(
     val showAddMenu: Boolean = false,
     val selectedNodeType: NodeType? = null,
-    // Если нода размещается из истории — здесь хранятся готовые expression/result
     val pendingExpression: String? = null,
     val pendingResult: String? = null,
     val activeNodeId: String? = null,
@@ -13,7 +12,14 @@ data class BoardUiState(
     val offset: Offset = Offset.Zero,
     // Состояние токенов и курсора для активной матноды
     val mathTokens: List<String> = emptyList(),
-    val mathCursorPosition: Int = 0
+    val mathCursorPosition: Int = 0,
+    val pinnedNodeId: String? = null,
+    val secondPinnedNodeId: String? = null,
+    val showMergeDialog: Boolean = false,
+    val mergeValueA: String = "",
+    val mergeValueB: String = "",
+    val mergeOperator: String = "+",
+    val mergeDialogOffset: Offset = Offset.Zero
 )
 
 enum class NodeType {
