@@ -33,6 +33,7 @@ fun InfiniteCanvas(
     onScaleChange: (Float) -> Unit,
     onOffsetChange: (Offset) -> Unit,
     onCanvasTap: (Offset) -> Unit,
+    onCanvasDoubleTap: (canvasOffset: Offset, screenOffset: Offset) -> Unit,
     onNodeClick: (String) -> Unit,
     onTextNodeUpdate: (String, String) -> Unit,
     onNodeMove: (String, Position) -> Unit,
@@ -127,7 +128,7 @@ fun InfiniteCanvas(
                 .fillMaxSize()
                 .then(
                     if (isPlacingMode) {
-                        Modifier.pointerInput(Unit) {
+                        Modifier.pointerInput(offset, scale) {
                             detectTapGestures { tapOffset ->
                                 val canvasX = (tapOffset.x - offset.x) / scale
                                 val canvasY = (tapOffset.y - offset.y) / scale
@@ -137,8 +138,18 @@ fun InfiniteCanvas(
                     } else {
                         Modifier
                             .transformable(state = transformState)
-                            .pointerInput(Unit) {
-                                detectTapGestures { onCanvasTap(Offset.Zero) }
+                            .pointerInput(offset, scale) {
+                                detectTapGestures(
+                                    onTap = { onCanvasTap(Offset.Zero) },
+                                    onDoubleTap = { tapOffset ->
+                                        val canvasX = (tapOffset.x - offset.x) / scale
+                                        val canvasY = (tapOffset.y - offset.y) / scale
+                                        onCanvasDoubleTap(
+                                            Offset(canvasX, canvasY),
+                                            tapOffset
+                                        )
+                                    }
+                                )
                             }
                     }
                 )

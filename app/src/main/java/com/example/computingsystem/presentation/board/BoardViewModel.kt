@@ -72,7 +72,16 @@ class BoardViewModel @Inject constructor(
             is BoardAction.ConfirmMerge                -> confirmMerge()
             is BoardAction.DismissMerge                -> dismissMerge()
             is BoardAction.CopyNode                    -> copyNode(action.nodeId)
+            is BoardAction.PlaceNodeOfType             -> placeNodeOfType(action.type, action.canvasOffset)
         }
+    }
+
+    private fun placeNodeOfType(type: NodeType, canvasOffset: Offset) {
+        val node = when (type) {
+            NodeType.TEXT -> BoardNode.TextNode(position = Position(canvasOffset.x, canvasOffset.y))
+            NodeType.MATH -> BoardNode.MathNode(position = Position(canvasOffset.x, canvasOffset.y))
+        }
+        viewModelScope.launch { addNode(node) }
     }
 
     private fun copyNode(nodeId: String) {

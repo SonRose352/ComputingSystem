@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.computingsystem.R
 import com.example.computingsystem.domain.model.BoardNode
+import com.example.computingsystem.presentation.board.components.ContextAddMenu
 import com.example.computingsystem.presentation.board.components.InfiniteCanvas
 import com.example.computingsystem.presentation.board.components.MergeDialog
 import com.example.computingsystem.presentation.calculator.CalculatorAction
@@ -55,6 +57,10 @@ fun BoardScreen(
         nodes.find { it.id == boardState.activeNodeId } as? BoardNode.MathNode
     }
 
+    var contextMenuScreenOffset by remember { mutableStateOf(Offset.Zero) }
+    var contextMenuCanvasOffset by remember { mutableStateOf(Offset.Zero) }
+    var showContextMenu by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -76,6 +82,11 @@ fun BoardScreen(
                 } else {
                     boardViewModel.onAction(BoardAction.ClearActiveNode)
                 }
+            },
+            onCanvasDoubleTap = { canvasOffset, screenOffset ->
+                contextMenuCanvasOffset = canvasOffset
+                contextMenuScreenOffset = screenOffset
+                showContextMenu = true
             },
             onNodeClick = { nodeId ->
                 boardViewModel.onAction(BoardAction.SetActiveNode(nodeId))
@@ -141,10 +152,24 @@ fun BoardScreen(
             ) {
                 DropdownMenuItem(
                     text = { Text("Текстовое поле") },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_text_node),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.TEXT)) }
                 )
                 DropdownMenuItem(
                     text = { Text("Математическое выражение") },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_math_node),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.MATH)) }
                 )
             }
@@ -163,9 +188,13 @@ fun BoardScreen(
                 .padding(6.dp)
         )
 
-        val isCopyingMode = boardState.pendingCopyNodeId != null
+        val placingHintText = when {
+            boardState.pendingCopyNodeId != null -> "Нажмите на доску, чтобы вставить копию"
+            boardState.selectedNodeType != null  -> "Нажмите на доску, чтобы разместить блок"
+            else                                 -> null
+        }
 
-        if (isCopyingMode) {
+        if (placingHintText != null) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -175,13 +204,28 @@ fun BoardScreen(
                 shadowElevation = 4.dp
             ) {
                 Text(
-                    text = "Нажмите на доску, чтобы вставить копию",
+                    text = placingHintText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
                 )
             }
+        }
+
+        if (showContextMenu) {
+            ContextAddMenu(
+                screenOffset = contextMenuScreenOffset,
+                onDismiss = { showContextMenu = false },
+                onSelectText = {
+                    showContextMenu = false
+                    boardViewModel.onAction(BoardAction.PlaceNodeOfType(NodeType.TEXT, contextMenuCanvasOffset))
+                },
+                onSelectMath = {
+                    showContextMenu = false
+                    boardViewModel.onAction(BoardAction.PlaceNodeOfType(NodeType.MATH, contextMenuCanvasOffset))
+                }
+            )
         }
 
         // Математическая клавиатура снизу
