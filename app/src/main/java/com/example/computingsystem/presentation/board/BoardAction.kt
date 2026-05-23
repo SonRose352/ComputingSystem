@@ -38,4 +38,6 @@ sealed class BoardAction {
     data object SwapMergeValues : BoardAction()
     data object ConfirmMerge : BoardAction()
     data object DismissMerge : BoardAction()
+
+    data class CopyNode(val nodeId: String) : BoardAction()
 }

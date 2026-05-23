@@ -71,6 +71,24 @@ class BoardViewModel @Inject constructor(
             is BoardAction.SwapMergeValues             -> swapMergeValues()
             is BoardAction.ConfirmMerge                -> confirmMerge()
             is BoardAction.DismissMerge                -> dismissMerge()
+            is BoardAction.CopyNode                    -> copyNode(action.nodeId)
+        }
+    }
+
+    private fun copyNode(nodeId: String) {
+        val node = nodes.value.find { it.id == nodeId } ?: return
+        val nodeType = when (node) {
+            is BoardNode.TextNode -> NodeType.TEXT
+            is BoardNode.MathNode -> NodeType.MATH
+        }
+        _uiState.update {
+            it.copy(
+                selectedNodeType = nodeType,
+                pendingCopyNodeId = nodeId,
+                activeNodeId = null,
+                mathTokens = emptyList(),
+                mathCursorPosition = 0
+            )
         }
     }
 
@@ -103,6 +121,36 @@ class BoardViewModel @Inject constructor(
     private fun placeNode(canvasOffset: Offset) {
         val state = _uiState.value
         val nodeType = state.selectedNodeType ?: return
+
+        if (state.pendingCopyNodeId != null) {
+            val original = nodes.value.find { it.id == state.pendingCopyNodeId } ?: run {
+                _uiState.update { it.copy(selectedNodeType = null, pendingCopyNodeId = null) }
+                return
+            }
+            val copy = when (original) {
+                is BoardNode.TextNode -> original.copy(
+                    id = java.util.UUID.randomUUID().toString(),
+                    position = Position(canvasOffset.x, canvasOffset.y)
+                )
+                is BoardNode.MathNode -> original.copy(
+                    id = java.util.UUID.randomUUID().toString(),
+                    position = Position(canvasOffset.x, canvasOffset.y)
+                )
+            }
+            viewModelScope.launch {
+                addNode(copy)
+                _uiState.update {
+                    it.copy(
+                        selectedNodeType = null,
+                        pendingCopyNodeId = null,
+                        pendingExpression = null,
+                        pendingResult = null
+                    )
+                }
+            }
+            return
+        }
+
         val node = when (nodeType) {
             NodeType.TEXT -> BoardNode.TextNode(position = Position(canvasOffset.x, canvasOffset.y))
             NodeType.MATH -> BoardNode.MathNode(

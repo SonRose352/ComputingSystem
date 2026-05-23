@@ -19,7 +19,8 @@ data class BoardUiState(
     val mergeValueA: String = "",
     val mergeValueB: String = "",
     val mergeOperator: String = "+",
-    val mergeDialogOffset: Offset = Offset.Zero
+    val mergeDialogOffset: Offset = Offset.Zero,
+    val pendingCopyNodeId: String? = null,
 )
 
 enum class NodeType {
