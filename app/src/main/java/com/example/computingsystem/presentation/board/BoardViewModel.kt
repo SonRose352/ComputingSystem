@@ -193,6 +193,10 @@ class BoardViewModel @Inject constructor(
     private fun deleteMapPin(pinId: String) {
         viewModelScope.launch {
             deletePin(pinId)
+
+            if (mapPins.value.size <= 1) {
+                _uiState.update { it.copy(showMapPinMenu = false) }
+            }
         }
     }
 

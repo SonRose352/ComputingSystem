@@ -1,5 +1,6 @@
 package com.example.computingsystem.presentation.board.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -31,8 +32,9 @@ fun MapPinOverlay(
         val screenY = with(density) { (pin.y * scale + canvasOffset.y).toDp() }
 
         Column(
-            modifier = Modifier.offset(screenX - 16.dp, screenY - 40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.offset(screenX - (16 * scale).dp, screenY - (40 * scale).dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy((4 * scale).dp)
         ) {
             Text(
                 text = pin.name,

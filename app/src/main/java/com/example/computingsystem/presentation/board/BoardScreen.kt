@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
@@ -79,6 +81,14 @@ fun BoardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .onSizeChanged { size ->
+                boardViewModel.onAction(
+                    BoardAction.UpdateScreenSize(
+                        width = size.width.toFloat(),
+                        height = size.height.toFloat()
+                    )
+                )
+            }
     ) {
         InfiniteCanvas(
             scale = boardState.scale,
@@ -259,20 +269,42 @@ fun BoardScreen(
                             )
                         },
                         trailingIcon = {
-                            IconButton(
-                                onClick = {
-                                    boardViewModel.onAction(BoardAction.ToggleMapPinVisibility(pin.id))
-                                },
-                                modifier = Modifier.size(32.dp)
+                            // ИЗМЕНИТЬ: Обернуть в Row для двух кнопок
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (pin.isVisible) R.drawable.ic_eye
-                                        else R.drawable.ic_eye_slash
-                                    ),
-                                    contentDescription = if (pin.isVisible) "Скрыть" else "Показать",
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                // Кнопка видимости
+                                IconButton(
+                                    onClick = {
+                                        boardViewModel.onAction(BoardAction.ToggleMapPinVisibility(pin.id))
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(
+                                            if (pin.isVisible) R.drawable.ic_eye
+                                            else R.drawable.ic_eye_slash
+                                        ),
+                                        contentDescription = if (pin.isVisible) "Скрыть" else "Показать",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // НОВОЕ: Кнопка удаления
+                                IconButton(
+                                    onClick = {
+                                        boardViewModel.onAction(BoardAction.DeleteMapPin(pin.id))
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Удалить точку",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         },
                         onClick = {
