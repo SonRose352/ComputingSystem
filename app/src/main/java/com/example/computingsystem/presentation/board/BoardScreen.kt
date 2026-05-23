@@ -16,6 +16,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -42,6 +43,8 @@ import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.presentation.board.components.ContextAddMenu
 import com.example.computingsystem.presentation.board.components.DrawingToolbar
 import com.example.computingsystem.presentation.board.components.InfiniteCanvas
+import com.example.computingsystem.presentation.board.components.MapPinNameDialog
+import com.example.computingsystem.presentation.board.components.MapPinOverlay
 import com.example.computingsystem.presentation.board.components.MergeDialog
 import com.example.computingsystem.presentation.calculator.CalculatorAction
 import com.example.computingsystem.presentation.calculator.CalculatorViewModel
@@ -56,6 +59,7 @@ fun BoardScreen(
     val boardState by boardViewModel.uiState.collectAsState()
     val nodes by boardViewModel.nodes.collectAsState()
     val history by calculatorViewModel.history.collectAsState()
+    val mapPins by boardViewModel.mapPins.collectAsState()
 
     var showHistory by remember { mutableStateOf(false) }
 
@@ -83,14 +87,20 @@ fun BoardScreen(
             activeNodeId = boardState.activeNodeId,
             pinnedNodeId = boardState.pinnedNodeId,
             secondPinnedNodeId = boardState.secondPinnedNodeId,
-            isPlacingMode = boardState.selectedNodeType != null,
+            isPlacingMode = boardState.selectedNodeType != null || boardState.isPlacingMapPin,
             onScaleChange = { boardViewModel.onAction(BoardAction.UpdateScale(it)) },
             onOffsetChange = { boardViewModel.onAction(BoardAction.UpdateOffset(it)) },
             onCanvasTap = { offset ->
-                if (boardState.selectedNodeType != null) {
-                    boardViewModel.onAction(BoardAction.PlaceNode(offset))
-                } else {
-                    boardViewModel.onAction(BoardAction.ClearActiveNode)
+                when {
+                    boardState.isPlacingMapPin -> {
+                        boardViewModel.onAction(BoardAction.OnCanvasTapForMapPin(offset))
+                    }
+                    boardState.selectedNodeType != null -> {
+                        boardViewModel.onAction(BoardAction.PlaceNode(offset))
+                    }
+                    else -> {
+                        boardViewModel.onAction(BoardAction.ClearActiveNode)
+                    }
                 }
             },
             onCanvasDoubleTap = { canvasOffset, screenOffset ->
@@ -138,6 +148,12 @@ fun BoardScreen(
             currentStrokeColor = boardState.drawingStrokeColor,
             modifier = Modifier
                 .fillMaxSize()
+        )
+
+        MapPinOverlay(
+            pins = mapPins,
+            canvasOffset = boardState.offset,
+            scale = boardState.scale
         )
 
         // Кнопка "+" в левом верхнем углу
@@ -206,6 +222,87 @@ fun BoardScreen(
             }
         }
 
+        // Кнопка навигации по точкам
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 16.dp, top = 72.dp)
+        ) {
+            IconButton(
+                onClick = { boardViewModel.onAction(BoardAction.ToggleMapPinMenu) },
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_map_pin_area),
+                    contentDescription = "Навигация",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            DropdownMenu(
+                expanded = boardState.showMapPinMenu,
+                onDismissRequest = { boardViewModel.onAction(BoardAction.ToggleMapPinMenu) },
+                offset = DpOffset(0.dp, 8.dp)
+            ) {
+                // Список существующих пинов
+                mapPins.forEach { pin ->
+                    DropdownMenuItem(
+                        text = { Text(pin.name) },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_map_pin),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    boardViewModel.onAction(BoardAction.ToggleMapPinVisibility(pin.id))
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (pin.isVisible) R.drawable.ic_eye
+                                        else R.drawable.ic_eye_slash
+                                    ),
+                                    contentDescription = if (pin.isVisible) "Скрыть" else "Показать",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        onClick = {
+                            boardViewModel.onAction(BoardAction.NavigateToMapPin(pin.id))
+                        }
+                    )
+                }
+
+                // Разделитель если есть пины
+                if (mapPins.isNotEmpty()) {
+                    HorizontalDivider()
+                }
+
+                // Кнопка добавления
+                DropdownMenuItem(
+                    text = { Text("Добавить") },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_map_pin_plus),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    onClick = {
+                        boardViewModel.onAction(BoardAction.StartPlacingMapPin)
+                    }
+                )
+            }
+        }
+
         // Кнопка истории в правом верхнем углу
         Icon(
             painter = painterResource(R.drawable.ic_history),
@@ -220,6 +317,7 @@ fun BoardScreen(
         )
 
         val placingHintText = when {
+            boardState.isPlacingMapPin           -> "Нажмите на доску, чтобы разместить точку"
             boardState.pendingCopyNodeId != null -> "Нажмите на доску, чтобы вставить копию"
             boardState.selectedNodeType != null  -> "Нажмите на доску, чтобы разместить блок"
             else                                 -> null
@@ -388,6 +486,17 @@ fun BoardScreen(
             },
             onClearAll = {
                 calculatorViewModel.onAction(CalculatorAction.ClearHistory)
+            }
+        )
+    }
+
+    if (boardState.showMapPinNameDialog) {
+        MapPinNameDialog(
+            onConfirm = { name ->
+                boardViewModel.onAction(BoardAction.ConfirmMapPinName(name))
+            },
+            onDismiss = {
+                boardViewModel.onAction(BoardAction.DismissMapPinNameDialog)
             }
         )
     }

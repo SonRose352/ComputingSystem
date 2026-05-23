@@ -1,6 +1,7 @@
 package com.example.computingsystem.presentation.board
 
 import androidx.compose.ui.geometry.Offset
+import com.example.computingsystem.domain.model.MapPin
 
 data class BoardUiState(
     val showAddMenu: Boolean = false,
@@ -30,6 +31,13 @@ data class BoardUiState(
     val isRecognizing: Boolean = false,
     val recognitionError: String? = null,
     val showRecognitionWarning: Boolean = false,
+
+    val showMapPinMenu: Boolean = false,
+    val isPlacingMapPin: Boolean = false,
+    val pendingMapPinPosition: Offset? = null,
+    val showMapPinNameDialog: Boolean = false,
+    val screenWidth: Float = 0f,
+    val screenHeight: Float = 0f,
 )
 
 enum class NodeType {

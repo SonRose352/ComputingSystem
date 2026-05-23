@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.computingsystem.data.local.dao.BoardNodeDao
 import com.example.computingsystem.data.local.dao.ExpressionDao
+import com.example.computingsystem.data.local.dao.MapPinDao
 import com.example.computingsystem.data.local.db.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -28,4 +29,7 @@ object DatabaseModule {
 
     @Provides
     fun provideBoardNodeDao(db: AppDatabase): BoardNodeDao = db.boardNodeDao()
+
+    @Provides
+    fun provideMapPinDao(db: AppDatabase): MapPinDao = db.mapPinDao()
 }

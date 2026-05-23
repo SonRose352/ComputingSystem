@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Expression
+import com.example.computingsystem.domain.model.MapPin
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
 import com.example.computingsystem.domain.service.InkRecognitionService
@@ -16,6 +17,10 @@ import com.example.computingsystem.domain.usecase.EvaluateExpressionUseCase
 import com.example.computingsystem.domain.usecase.GetBoardNodesUseCase
 import com.example.computingsystem.domain.usecase.SaveExpressionUseCase
 import com.example.computingsystem.domain.usecase.UpdateBoardNodeUseCase
+import com.example.computingsystem.domain.usecase.mappin.AddMapPinUseCase
+import com.example.computingsystem.domain.usecase.mappin.DeleteMapPinUseCase
+import com.example.computingsystem.domain.usecase.mappin.GetMapPinsUseCase
+import com.example.computingsystem.domain.usecase.mappin.UpdateMapPinUseCase
 import com.example.computingsystem.presentation.calculator.AngleMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -31,12 +36,19 @@ class BoardViewModel @Inject constructor(
     private val evaluate: EvaluateExpressionUseCase,
     private val saveExpression: SaveExpressionUseCase,
     private val inkRecognitionService: InkRecognitionService,
+    getPins: GetMapPinsUseCase,
+    private val addPin: AddMapPinUseCase,
+    private val updatePin: UpdateMapPinUseCase,
+    private val deletePin: DeleteMapPinUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BoardUiState())
     val uiState: StateFlow<BoardUiState> = _uiState.asStateFlow()
 
     val nodes: StateFlow<List<BoardNode>> = getNodes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val mapPins: StateFlow<List<MapPin>> = getPins()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val functionTokens = setOf(
@@ -91,6 +103,96 @@ class BoardViewModel @Inject constructor(
             is BoardAction.UndoLastStroke              -> undoLastStroke(action.nodeId)
             is BoardAction.RecognizeDrawingNode        -> recognizeDrawingNode(action.nodeId)
             is BoardAction.DismissRecognitionWarning   -> dismissRecognitionWarning()
+            is BoardAction.ToggleMapPinMenu        -> toggleMapPinMenu()
+            is BoardAction.StartPlacingMapPin      -> startPlacingMapPin()
+            is BoardAction.OnCanvasTapForMapPin    -> onCanvasTapForMapPin(action.canvasOffset)
+            is BoardAction.ConfirmMapPinName       -> confirmMapPinName(action.name)
+            is BoardAction.DismissMapPinNameDialog -> dismissMapPinNameDialog()
+            is BoardAction.ToggleMapPinVisibility  -> toggleMapPinVisibility(action.pinId)
+            is BoardAction.NavigateToMapPin        -> navigateToMapPin(action.pinId)
+            is BoardAction.DeleteMapPin            -> deleteMapPin(action.pinId)
+            is BoardAction.UpdateScreenSize        -> updateScreenSize(action.width, action.height)
+        }
+    }
+
+    private fun updateScreenSize(width: Float, height: Float) {
+        _uiState.update {
+            it.copy(screenWidth = width, screenHeight = height)
+        }
+    }
+
+    private fun toggleMapPinMenu() {
+        _uiState.update { it.copy(showMapPinMenu = !it.showMapPinMenu) }
+    }
+
+    private fun startPlacingMapPin() {
+        _uiState.update {
+            it.copy(
+                showMapPinMenu = false,
+                isPlacingMapPin = true
+            )
+        }
+    }
+
+    private fun onCanvasTapForMapPin(canvasOffset: Offset) {
+        _uiState.update {
+            it.copy(
+                isPlacingMapPin = false,
+                pendingMapPinPosition = canvasOffset,
+                showMapPinNameDialog = true
+            )
+        }
+    }
+
+    private fun confirmMapPinName(name: String) {
+        val pos = _uiState.value.pendingMapPinPosition ?: return
+        val newPin = MapPin(
+            name = name.ifBlank { "Точка" },
+            x = pos.x,
+            y = pos.y
+        )
+        viewModelScope.launch {
+            addPin(newPin)
+        }
+        _uiState.update {
+            it.copy(
+                pendingMapPinPosition = null,
+                showMapPinNameDialog = false
+            )
+        }
+    }
+
+    private fun dismissMapPinNameDialog() {
+        _uiState.update {
+            it.copy(
+                pendingMapPinPosition = null,
+                showMapPinNameDialog = false
+            )
+        }
+    }
+
+    private fun toggleMapPinVisibility(pinId: String) {
+        val pin = mapPins.value.find { it.id == pinId } ?: return
+        viewModelScope.launch {
+            updatePin(pin.copy(isVisible = !pin.isVisible))
+        }
+    }
+
+    private fun navigateToMapPin(pinId: String) {
+        val pin = mapPins.value.find { it.id == pinId } ?: return
+        val state = _uiState.value
+        val screenCenterX = state.screenWidth / 2f
+        val screenCenterY = state.screenHeight / 2f
+        val newOffset = Offset(
+            x = screenCenterX - pin.x * state.scale,
+            y = screenCenterY - pin.y * state.scale
+        )
+        _uiState.update { it.copy(offset = newOffset, showMapPinMenu = false) }
+    }
+
+    private fun deleteMapPin(pinId: String) {
+        viewModelScope.launch {
+            deletePin(pinId)
         }
     }
 

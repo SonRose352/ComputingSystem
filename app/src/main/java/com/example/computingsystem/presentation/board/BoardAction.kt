@@ -50,4 +50,14 @@ sealed class BoardAction {
     data class UndoLastStroke(val nodeId: String) : BoardAction()
     data class RecognizeDrawingNode(val nodeId: String) : BoardAction()
     data object DismissRecognitionWarning : BoardAction()
+
+    data object ToggleMapPinMenu : BoardAction()
+    data object StartPlacingMapPin : BoardAction()
+    data class OnCanvasTapForMapPin(val canvasOffset: Offset) : BoardAction()
+    data class ConfirmMapPinName(val name: String) : BoardAction()
+    data object DismissMapPinNameDialog : BoardAction()
+    data class ToggleMapPinVisibility(val pinId: String) : BoardAction()
+    data class NavigateToMapPin(val pinId: String) : BoardAction()
+    data class DeleteMapPin(val pinId: String) : BoardAction()
+    data class UpdateScreenSize(val width: Float, val height: Float) : BoardAction()
 }
