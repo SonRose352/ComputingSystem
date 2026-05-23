@@ -82,4 +82,7 @@ dependencies {
 
     //Json
     implementation(libs.kotlinx.serialization.json)
+
+    //ML Kit
+    implementation(libs.digital.ink.recognition)
 }

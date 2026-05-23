@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.2"
+digitalInkRecognition = "19.0.0"
 kotlin = "2.0.21"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -24,6 +25,7 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-room-compiler = { module = "androidx.room:room-compiler", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", name = "room-ktx", version.ref = "room" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", name = "room-runtime", version.ref = "room" }
+digital-ink-recognition = { module = "com.google.mlkit:digital-ink-recognition", version.ref = "digitalInkRecognition" }
 exp4j = { module = "net.objecthunter:exp4j", name = "exp4j", version.ref = "exp4j" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }

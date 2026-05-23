@@ -2,7 +2,9 @@ package com.example.computingsystem.presentation.board
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -18,6 +22,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -125,6 +130,9 @@ fun BoardScreen(
             },
             onShowDrawingToolbar = { nodeId ->
                 boardViewModel.onAction(BoardAction.ShowDrawingToolbar(nodeId))
+            },
+            onRecognizeDrawing = { nodeId ->
+                boardViewModel.onAction(BoardAction.RecognizeDrawingNode(nodeId))
             },
             currentStrokeWidth = boardState.drawingStrokeWidth,
             currentStrokeColor = boardState.drawingStrokeColor,
@@ -289,6 +297,9 @@ fun BoardScreen(
                 onUndoLast = {
                     boardViewModel.onAction(BoardAction.UndoLastStroke(activeDrawingNode.id))
                 },
+                onClose = {
+                    boardViewModel.onAction(BoardAction.HideDrawingToolbar)
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .height(300.dp)
@@ -306,6 +317,55 @@ fun BoardScreen(
                 onSwap = { boardViewModel.onAction(BoardAction.SwapMergeValues) },
                 onConfirm = { boardViewModel.onAction(BoardAction.ConfirmMerge) },
                 onDismiss = { boardViewModel.onAction(BoardAction.DismissMerge) }
+            )
+        }
+
+        // Индикатор распознавания
+        if (boardState.isRecognizing) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(32.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Text("Распознавание...")
+                }
+            }
+        }
+
+        // Предупреждение о частичном распознавании
+        if (boardState.showRecognitionWarning) {
+            AlertDialog(
+                onDismissRequest = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) },
+                title = { Text("Внимание") },
+                text = { Text("Не все символы были распознаны корректно. Проверьте выражение.") },
+                confirmButton = {
+                    TextButton(onClick = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) }) {
+                        Text("Понятно")
+                    }
+                }
+            )
+        }
+
+        // Ошибка распознавания
+        boardState.recognitionError?.let { error ->
+            AlertDialog(
+                onDismissRequest = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) },
+                title = { Text("Ошибка") },
+                text = { Text(error) },
+                confirmButton = {
+                    TextButton(onClick = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) }) {
+                        Text("OK")
+                    }
+                }
             )
         }
     }

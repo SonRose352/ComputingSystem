@@ -9,6 +9,7 @@ import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Expression
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
+import com.example.computingsystem.domain.service.InkRecognitionService
 import com.example.computingsystem.domain.usecase.AddBoardNodeUseCase
 import com.example.computingsystem.domain.usecase.DeleteBoardNodeUseCase
 import com.example.computingsystem.domain.usecase.EvaluateExpressionUseCase
@@ -28,7 +29,8 @@ class BoardViewModel @Inject constructor(
     private val updateNode: UpdateBoardNodeUseCase,
     private val deleteNode: DeleteBoardNodeUseCase,
     private val evaluate: EvaluateExpressionUseCase,
-    private val saveExpression: SaveExpressionUseCase
+    private val saveExpression: SaveExpressionUseCase,
+    private val inkRecognitionService: InkRecognitionService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BoardUiState())
@@ -42,6 +44,12 @@ class BoardViewModel @Inject constructor(
         "asin(", "acos(", "atan(",
         "ln(", "lg(", "^(-1)"
     )
+
+    init {
+        viewModelScope.launch {
+            inkRecognitionService.downloadModelIfNeeded()
+        }
+    }
 
     fun onAction(action: BoardAction) {
         when (action) {
@@ -81,14 +89,108 @@ class BoardViewModel @Inject constructor(
             is BoardAction.SetDrawingStrokeColor       -> setDrawingStrokeColor(action.color)
             is BoardAction.ClearDrawing                -> clearDrawing(action.nodeId)
             is BoardAction.UndoLastStroke              -> undoLastStroke(action.nodeId)
+            is BoardAction.RecognizeDrawingNode        -> recognizeDrawingNode(action.nodeId)
+            is BoardAction.DismissRecognitionWarning   -> dismissRecognitionWarning()
         }
     }
 
+    private fun dismissRecognitionWarning() {
+        _uiState.update { it.copy(showRecognitionWarning = false, recognitionError = null) }
+    }
+
+    private fun recognizeDrawingNode(nodeId: String) {
+        val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return
+        if (node.strokes.isEmpty()) return
+
+        _uiState.update { it.copy(isRecognizing = true, recognitionError = null) }
+
+        viewModelScope.launch {
+            try {
+                // Скачиваем модель при необходимости
+                val ready = inkRecognitionService.downloadModelIfNeeded()
+                if (!ready) {
+                    _uiState.update {
+                        it.copy(isRecognizing = false, recognitionError = "Не удалось загрузить модель распознавания")
+                    }
+                    return@launch
+                }
+
+                // Извлекаем только координаты точек из штрихов (без метаданных цвета/ширины)
+                val rawStrokes = extractRawStrokes(node.strokes)
+
+                val result = inkRecognitionService.recognize(rawStrokes)
+
+                // Создаём MathNode на месте DrawingNode
+                val mathNode = BoardNode.MathNode(
+                    position = node.position,
+                    size = node.size,
+                    expression = result.expression,
+                    result = ""
+                )
+
+                // Вычисляем результат если возможно
+                evaluate(result.expression, AngleMode.RAD).fold(
+                    onSuccess = { evalResult ->
+                        viewModelScope.launch {
+                            deleteNode(nodeId)
+                            addNode(mathNode.copy(result = evalResult))
+                            if (result.hasUncertainSymbols) {
+                                _uiState.update {
+                                    it.copy(
+                                        isRecognizing = false,
+                                        showRecognitionWarning = true
+                                    )
+                                }
+                            } else {
+                                _uiState.update { it.copy(isRecognizing = false) }
+                            }
+                        }
+                    },
+                    onFailure = {
+                        viewModelScope.launch {
+                            deleteNode(nodeId)
+                            addNode(mathNode)
+                            _uiState.update {
+                                it.copy(
+                                    isRecognizing = false,
+                                    showRecognitionWarning = result.hasUncertainSymbols
+                                )
+                            }
+                        }
+                    }
+                )
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isRecognizing = false,
+                        recognitionError = "Ошибка распознавания: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    // Извлекаем чистые точки, пропуская заголовки штрихов (формат из DrawingNodeView)
+    private fun extractRawStrokes(
+        serialized: List<List<Pair<Float, Float>>>
+    ): List<List<Pair<Float, Float>>> {
+        return serialized.map { stroke ->
+            if (stroke.isNotEmpty() && stroke.first().first == -1f) {
+                // Новый формат: первые 3 элемента — метаданные
+                stroke.drop(3)
+            } else {
+                stroke
+            }
+        }.filter { it.isNotEmpty() }
+    }
+
     private fun showDrawingToolbar(nodeId: String) {
-        _uiState.update {
-            it.copy(
-                showDrawingToolbar = true,
-                drawingToolbarNodeId = nodeId
+        _uiState.update { state ->
+            val alreadyOpen = state.showDrawingToolbar && state.drawingToolbarNodeId == nodeId
+            state.copy(
+                showDrawingToolbar = !alreadyOpen,
+                drawingToolbarNodeId = if (alreadyOpen) null else nodeId
             )
         }
     }
@@ -265,7 +367,13 @@ class BoardViewModel @Inject constructor(
     }
 
     private fun setActiveNode(nodeId: String?) {
-        _uiState.update { it.copy(activeNodeId = nodeId) }
+        _uiState.update {
+            it.copy(
+                activeNodeId = nodeId,
+                showDrawingToolbar = false,
+                drawingToolbarNodeId = null
+            )
+        }
         if (nodeId != null) {
             val node = nodes.value.find { it.id == nodeId }
             if (node is BoardNode.MathNode) initMathNode(nodeId, node.expression)
@@ -282,7 +390,13 @@ class BoardViewModel @Inject constructor(
             }
         }
         _uiState.update {
-            it.copy(activeNodeId = null, mathTokens = emptyList(), mathCursorPosition = 0)
+            it.copy(
+                activeNodeId = null,
+                mathTokens = emptyList(),
+                mathCursorPosition = 0,
+                showDrawingToolbar = false,
+                drawingToolbarNodeId = null
+            )
         }
     }
 

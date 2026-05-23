@@ -26,6 +26,10 @@ data class BoardUiState(
     val drawingToolbarNodeId: String? = null,
     val drawingStrokeWidth: Float = 4f,
     val drawingStrokeColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
+
+    val isRecognizing: Boolean = false,
+    val recognitionError: String? = null,
+    val showRecognitionWarning: Boolean = false,
 )
 
 enum class NodeType {

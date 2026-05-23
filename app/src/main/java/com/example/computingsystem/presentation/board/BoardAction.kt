@@ -48,4 +48,6 @@ sealed class BoardAction {
     data class SetDrawingStrokeColor(val color: androidx.compose.ui.graphics.Color) : BoardAction()
     data class ClearDrawing(val nodeId: String) : BoardAction()
     data class UndoLastStroke(val nodeId: String) : BoardAction()
+    data class RecognizeDrawingNode(val nodeId: String) : BoardAction()
+    data object DismissRecognitionWarning : BoardAction()
 }

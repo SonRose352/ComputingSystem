@@ -49,6 +49,7 @@ fun DrawingNodeView(
     onCopy: () -> Unit,
     onStrokesUpdated: (List<List<Pair<Float, Float>>>) -> Unit,
     onShowToolbar: () -> Unit,
+    onRecognize: () -> Unit,
     currentStrokeWidth: Float,
     currentStrokeColor: Color
 ) {
@@ -222,8 +223,8 @@ fun DrawingNodeView(
                         iconSizeDp = scaledMenuIcon
                     )
 
-                    // Кнопка настроек
                     if (isActive) {
+                        // Кнопка настроек рисования
                         IconButton(
                             onClick = onShowToolbar,
                             modifier = Modifier.size(scaledMenuIcon)
@@ -233,6 +234,19 @@ fun DrawingNodeView(
                                 contentDescription = "Настройки рисования",
                                 modifier = Modifier.fillMaxSize(0.6f),
                                 tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // Кнопка распознавания AI
+                        IconButton(
+                            onClick = onRecognize,
+                            modifier = Modifier.size(scaledMenuIcon)
+                        ) {
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(com.example.computingsystem.R.drawable.ic_ai),
+                                contentDescription = "Распознать выражение",
+                                modifier = Modifier.fillMaxSize(0.6f),
+                                tint = MaterialTheme.colorScheme.tertiary
                             )
                         }
                     }

@@ -45,6 +45,7 @@ fun InfiniteCanvas(
     onMergeTrigger: (screenOffset: Offset) -> Unit,
     onCopyNode: (String) -> Unit,
     onShowDrawingToolbar: (String) -> Unit,
+    onRecognizeDrawing: (String) -> Unit,
     currentStrokeWidth: Float,
     currentStrokeColor: Color,
     modifier: Modifier = Modifier
@@ -222,8 +223,9 @@ fun InfiniteCanvas(
                     onCopy = { onCopyNode(node.id) },
                     onStrokesUpdated = { strokes -> onDrawingNodeUpdate(node.id, strokes) },
                     onShowToolbar = { onShowDrawingToolbar(node.id) },
+                    onRecognize = { onRecognizeDrawing(node.id) },
                     currentStrokeWidth = currentStrokeWidth,
-                    currentStrokeColor = currentStrokeColor
+                    currentStrokeColor = currentStrokeColor,
                 )
             }
         }
