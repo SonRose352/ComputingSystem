@@ -21,6 +21,13 @@ sealed class BoardNode {
         val expression: String = "",
         val result: String = ""
     ) : BoardNode()
+
+    data class DrawingNode(
+        override val id: String = UUID.randomUUID().toString(),
+        override val position: Position,
+        override val size: Size = Size(600f, 400f),
+        val strokes: List<List<Pair<Float, Float>>> = emptyList()
+    ) : BoardNode()
 }
 
 data class Position(

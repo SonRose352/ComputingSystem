@@ -73,6 +73,14 @@ class BoardViewModel @Inject constructor(
             is BoardAction.DismissMerge                -> dismissMerge()
             is BoardAction.CopyNode                    -> copyNode(action.nodeId)
             is BoardAction.PlaceNodeOfType             -> placeNodeOfType(action.type, action.canvasOffset)
+            is BoardAction.UpdateDrawingNode -> updateDrawingNode(action.nodeId, action.strokes)
+        }
+    }
+
+    private fun updateDrawingNode(nodeId: String, strokes: List<List<Pair<Float, Float>>>) {
+        viewModelScope.launch {
+            val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return@launch
+            updateNode(node.copy(strokes = strokes))
         }
     }
 
@@ -80,6 +88,7 @@ class BoardViewModel @Inject constructor(
         val node = when (type) {
             NodeType.TEXT -> BoardNode.TextNode(position = Position(canvasOffset.x, canvasOffset.y))
             NodeType.MATH -> BoardNode.MathNode(position = Position(canvasOffset.x, canvasOffset.y))
+            NodeType.DRAWING -> BoardNode.DrawingNode(position = Position(canvasOffset.x, canvasOffset.y))
         }
         viewModelScope.launch { addNode(node) }
     }
@@ -89,6 +98,7 @@ class BoardViewModel @Inject constructor(
         val nodeType = when (node) {
             is BoardNode.TextNode -> NodeType.TEXT
             is BoardNode.MathNode -> NodeType.MATH
+            is BoardNode.DrawingNode -> NodeType.DRAWING
         }
         _uiState.update {
             it.copy(
@@ -145,6 +155,11 @@ class BoardViewModel @Inject constructor(
                     id = java.util.UUID.randomUUID().toString(),
                     position = Position(canvasOffset.x, canvasOffset.y)
                 )
+                is BoardNode.DrawingNode -> original.copy(
+                    id = java.util.UUID.randomUUID().toString(),
+                    position = Position(canvasOffset.x, canvasOffset.y)
+                )
+
             }
             viewModelScope.launch {
                 addNode(copy)
@@ -166,6 +181,9 @@ class BoardViewModel @Inject constructor(
                 position = Position(canvasOffset.x, canvasOffset.y),
                 expression = state.pendingExpression ?: "",
                 result = state.pendingResult ?: ""
+            )
+            NodeType.DRAWING -> BoardNode.DrawingNode(
+                position = Position(canvasOffset.x, canvasOffset.y)
             )
         }
         viewModelScope.launch {
@@ -226,6 +244,7 @@ class BoardViewModel @Inject constructor(
                 when (node) {
                     is BoardNode.TextNode -> node.copy(position = newPosition)
                     is BoardNode.MathNode -> node.copy(position = newPosition)
+                    is BoardNode.DrawingNode -> node.copy(position = newPosition)
                 }
             )
         }
@@ -238,6 +257,7 @@ class BoardViewModel @Inject constructor(
                 when (node) {
                     is BoardNode.TextNode -> node.copy(size = newSize)
                     is BoardNode.MathNode -> node.copy(size = newSize)
+                    is BoardNode.DrawingNode -> node.copy(size = newSize)
                 }
             )
         }

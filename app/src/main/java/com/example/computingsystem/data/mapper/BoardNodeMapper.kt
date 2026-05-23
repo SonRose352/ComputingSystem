@@ -27,6 +27,28 @@ object BoardNodeMapper {
                     result = parts.getOrNull(1) ?: ""
                 )
             }
+            "drawing" -> {
+                val strokes = if (entity.content.isEmpty()) {
+                    emptyList()
+                } else {
+                    entity.content.split("|").map { stroke ->
+                        stroke.split(";").mapNotNull { point ->
+                            val parts = point.split(",")
+                            if (parts.size == 2) {
+                                val x = parts[0].toFloatOrNull()
+                                val y = parts[1].toFloatOrNull()
+                                if (x != null && y != null) Pair(x, y) else null
+                            } else null
+                        }
+                    }
+                }
+                BoardNode.DrawingNode(
+                    id = entity.id,
+                    position = Position(entity.x, entity.y),
+                    size = Size(entity.width, entity.height),
+                    strokes = strokes
+                )
+            }
             else -> throw IllegalArgumentException("Unknown node type: ${entity.type}")
         }
     }
@@ -51,6 +73,18 @@ object BoardNodeMapper {
                 width = domain.size.width,
                 height = domain.size.height,
                 content = "${domain.expression}|||${domain.result}",
+                updatedAt = System.currentTimeMillis()
+            )
+            is BoardNode.DrawingNode -> BoardNodeEntity(
+                id = domain.id,
+                type = "drawing",
+                x = domain.position.x,
+                y = domain.position.y,
+                width = domain.size.width,
+                height = domain.size.height,
+                content = domain.strokes.joinToString("|") { stroke ->
+                    stroke.joinToString(";") { (x, y) -> "$x,$y" }
+                },
                 updatedAt = System.currentTimeMillis()
             )
         }

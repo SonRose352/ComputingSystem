@@ -94,6 +94,9 @@ fun BoardScreen(
             onTextNodeUpdate = { nodeId, text ->
                 boardViewModel.onAction(BoardAction.UpdateTextNode(nodeId, text))
             },
+            onDrawingNodeUpdate = { nodeId, strokes ->
+                boardViewModel.onAction(BoardAction.UpdateDrawingNode(nodeId, strokes))
+            },
             onNodeMove = { nodeId, newPos ->
                 boardViewModel.onAction(BoardAction.MoveNode(nodeId, newPos))
             },
@@ -172,6 +175,17 @@ fun BoardScreen(
                     },
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.MATH)) }
                 )
+                DropdownMenuItem(
+                    text = { Text("Рисунок") },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_drawing_node),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.DRAWING)) }
+                )
             }
         }
 
@@ -224,7 +238,11 @@ fun BoardScreen(
                 onSelectMath = {
                     showContextMenu = false
                     boardViewModel.onAction(BoardAction.PlaceNodeOfType(NodeType.MATH, contextMenuCanvasOffset))
-                }
+                },
+                onSelectDrawing = {
+                    showContextMenu = false
+                    boardViewModel.onAction(BoardAction.PlaceNodeOfType(NodeType.DRAWING, contextMenuCanvasOffset))
+                },
             )
         }
 

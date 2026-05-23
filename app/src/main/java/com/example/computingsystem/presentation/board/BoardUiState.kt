@@ -24,5 +24,5 @@ data class BoardUiState(
 )
 
 enum class NodeType {
-    TEXT, MATH
+    TEXT, MATH, DRAWING
 }

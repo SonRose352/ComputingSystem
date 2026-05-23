@@ -27,7 +27,8 @@ fun ContextAddMenu(
     screenOffset: Offset,
     onDismiss: () -> Unit,
     onSelectText: () -> Unit,
-    onSelectMath: () -> Unit
+    onSelectMath: () -> Unit,
+    onSelectDrawing: () -> Unit,
 ) {
     val density = LocalDensity.current
 
@@ -68,6 +69,18 @@ fun ContextAddMenu(
                         )
                     },
                     onClick = onSelectMath
+                )
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text("Рисунок") },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_drawing_node),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    onClick = onSelectDrawing
                 )
             }
         }

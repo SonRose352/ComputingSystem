@@ -36,6 +36,7 @@ fun InfiniteCanvas(
     onCanvasDoubleTap: (canvasOffset: Offset, screenOffset: Offset) -> Unit,
     onNodeClick: (String) -> Unit,
     onTextNodeUpdate: (String, String) -> Unit,
+    onDrawingNodeUpdate: (String, List<List<Pair<Float, Float>>>) -> Unit,
     onNodeMove: (String, Position) -> Unit,
     onNodeResize: (String, Size) -> Unit,
     onDeleteNode: (String) -> Unit,
@@ -204,6 +205,19 @@ fun InfiniteCanvas(
                     onPinned = { onNodePinned(node.id) },
                     onUnpinned = { onNodeUnpinned(node.id) },
                     onCopy = { onCopyNode(node.id) },
+                )
+                is BoardNode.DrawingNode -> DrawingNodeView(
+                    node = node,
+                    offset = offset,
+                    scale = scale,
+                    isActive = node.id == activeNodeId,
+                    onClick = { onNodeClick(node.id) },
+                    onMove = { pos -> livePositions[node.id] = pos },
+                    onMoveFinished = { onNodeMove(node.id, it) },
+                    onResizeFinished = { onNodeResize(node.id, it) },
+                    onDelete = { onDeleteNode(node.id) },
+                    onCopy = { onCopyNode(node.id) },
+                    onStrokesUpdated = { strokes -> onDrawingNodeUpdate(node.id, strokes) }
                 )
             }
         }

@@ -40,4 +40,6 @@ sealed class BoardAction {
     data object DismissMerge : BoardAction()
     data class CopyNode(val nodeId: String) : BoardAction()
     data class PlaceNodeOfType(val type: NodeType, val canvasOffset: Offset) : BoardAction()
+
+    data class UpdateDrawingNode(val nodeId: String, val strokes: List<List<Pair<Float, Float>>>) : BoardAction()
 }
