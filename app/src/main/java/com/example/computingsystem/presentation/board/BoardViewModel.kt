@@ -2,6 +2,7 @@ package com.example.computingsystem.presentation.board
 
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.computingsystem.domain.model.BoardNode
@@ -73,7 +74,55 @@ class BoardViewModel @Inject constructor(
             is BoardAction.DismissMerge                -> dismissMerge()
             is BoardAction.CopyNode                    -> copyNode(action.nodeId)
             is BoardAction.PlaceNodeOfType             -> placeNodeOfType(action.type, action.canvasOffset)
-            is BoardAction.UpdateDrawingNode -> updateDrawingNode(action.nodeId, action.strokes)
+            is BoardAction.UpdateDrawingNode           -> updateDrawingNode(action.nodeId, action.strokes)
+            is BoardAction.ShowDrawingToolbar          -> showDrawingToolbar(action.nodeId)
+            is BoardAction.HideDrawingToolbar          -> hideDrawingToolbar()
+            is BoardAction.SetDrawingStrokeWidth       -> setDrawingStrokeWidth(action.width)
+            is BoardAction.SetDrawingStrokeColor       -> setDrawingStrokeColor(action.color)
+            is BoardAction.ClearDrawing                -> clearDrawing(action.nodeId)
+            is BoardAction.UndoLastStroke              -> undoLastStroke(action.nodeId)
+        }
+    }
+
+    private fun showDrawingToolbar(nodeId: String) {
+        _uiState.update {
+            it.copy(
+                showDrawingToolbar = true,
+                drawingToolbarNodeId = nodeId
+            )
+        }
+    }
+
+    private fun hideDrawingToolbar() {
+        _uiState.update {
+            it.copy(
+                showDrawingToolbar = false,
+                drawingToolbarNodeId = null
+            )
+        }
+    }
+
+    private fun setDrawingStrokeWidth(width: Float) {
+        _uiState.update { it.copy(drawingStrokeWidth = width) }
+    }
+
+    private fun setDrawingStrokeColor(color: Color) {
+        _uiState.update { it.copy(drawingStrokeColor = color) }
+    }
+
+    private fun clearDrawing(nodeId: String) {
+        viewModelScope.launch {
+            val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return@launch
+            updateNode(node.copy(strokes = emptyList()))
+        }
+    }
+
+    private fun undoLastStroke(nodeId: String) {
+        viewModelScope.launch {
+            val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return@launch
+            if (node.strokes.isNotEmpty()) {
+                updateNode(node.copy(strokes = node.strokes.dropLast(1)))
+            }
         }
     }
 

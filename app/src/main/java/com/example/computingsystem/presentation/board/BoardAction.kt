@@ -42,4 +42,10 @@ sealed class BoardAction {
     data class PlaceNodeOfType(val type: NodeType, val canvasOffset: Offset) : BoardAction()
 
     data class UpdateDrawingNode(val nodeId: String, val strokes: List<List<Pair<Float, Float>>>) : BoardAction()
+    data class ShowDrawingToolbar(val nodeId: String) : BoardAction()
+    data object HideDrawingToolbar : BoardAction()
+    data class SetDrawingStrokeWidth(val width: Float) : BoardAction()
+    data class SetDrawingStrokeColor(val color: androidx.compose.ui.graphics.Color) : BoardAction()
+    data class ClearDrawing(val nodeId: String) : BoardAction()
+    data class UndoLastStroke(val nodeId: String) : BoardAction()
 }

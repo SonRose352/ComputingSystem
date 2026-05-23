@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.computingsystem.R
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.presentation.board.components.ContextAddMenu
+import com.example.computingsystem.presentation.board.components.DrawingToolbar
 import com.example.computingsystem.presentation.board.components.InfiniteCanvas
 import com.example.computingsystem.presentation.board.components.MergeDialog
 import com.example.computingsystem.presentation.calculator.CalculatorAction
@@ -55,6 +56,10 @@ fun BoardScreen(
 
     val activeMathNode = remember(boardState.activeNodeId, nodes) {
         nodes.find { it.id == boardState.activeNodeId } as? BoardNode.MathNode
+    }
+
+    val activeDrawingNode = remember(boardState.activeNodeId, nodes) {
+        nodes.find { it.id == boardState.activeNodeId } as? BoardNode.DrawingNode
     }
 
     var contextMenuScreenOffset by remember { mutableStateOf(Offset.Zero) }
@@ -118,9 +123,13 @@ fun BoardScreen(
             onCopyNode = { nodeId ->
                 boardViewModel.onAction(BoardAction.CopyNode(nodeId))
             },
+            onShowDrawingToolbar = { nodeId ->
+                boardViewModel.onAction(BoardAction.ShowDrawingToolbar(nodeId))
+            },
+            currentStrokeWidth = boardState.drawingStrokeWidth,
+            currentStrokeColor = boardState.drawingStrokeColor,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (activeMathNode != null) 300.dp else 0.dp)
         )
 
         // Кнопка "+" в левом верхнем углу
@@ -258,6 +267,28 @@ fun BoardScreen(
                 onMoveCursorRight = { boardViewModel.onAction(BoardAction.MathKeyboardMoveCursorRight) },
                 onSetCursor = { boardViewModel.onAction(BoardAction.MathKeyboardSetCursor(it)) },
                 onCalculate = { boardViewModel.onAction(BoardAction.MathKeyboardCalculate) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .height(300.dp)
+            )
+        }
+
+        if (boardState.showDrawingToolbar && activeDrawingNode != null) {
+            DrawingToolbar(
+                strokeWidth = boardState.drawingStrokeWidth,
+                strokeColor = boardState.drawingStrokeColor,
+                onStrokeWidthChange = {
+                    boardViewModel.onAction(BoardAction.SetDrawingStrokeWidth(it))
+                },
+                onStrokeColorChange = {
+                    boardViewModel.onAction(BoardAction.SetDrawingStrokeColor(it))
+                },
+                onClearAll = {
+                    boardViewModel.onAction(BoardAction.ClearDrawing(activeDrawingNode.id))
+                },
+                onUndoLast = {
+                    boardViewModel.onAction(BoardAction.UndoLastStroke(activeDrawingNode.id))
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .height(300.dp)

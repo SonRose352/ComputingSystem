@@ -44,6 +44,9 @@ fun InfiniteCanvas(
     onNodeUnpinned: (String) -> Unit,
     onMergeTrigger: (screenOffset: Offset) -> Unit,
     onCopyNode: (String) -> Unit,
+    onShowDrawingToolbar: (String) -> Unit,
+    currentStrokeWidth: Float,
+    currentStrokeColor: Color,
     modifier: Modifier = Modifier
 ) {
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
@@ -217,7 +220,10 @@ fun InfiniteCanvas(
                     onResizeFinished = { onNodeResize(node.id, it) },
                     onDelete = { onDeleteNode(node.id) },
                     onCopy = { onCopyNode(node.id) },
-                    onStrokesUpdated = { strokes -> onDrawingNodeUpdate(node.id, strokes) }
+                    onStrokesUpdated = { strokes -> onDrawingNodeUpdate(node.id, strokes) },
+                    onShowToolbar = { onShowDrawingToolbar(node.id) },
+                    currentStrokeWidth = currentStrokeWidth,
+                    currentStrokeColor = currentStrokeColor
                 )
             }
         }

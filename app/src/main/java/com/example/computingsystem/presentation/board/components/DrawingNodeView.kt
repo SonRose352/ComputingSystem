@@ -10,6 +10,8 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +29,12 @@ import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
 
+data class DrawingStroke(
+    val points: List<Pair<Float, Float>>,
+    val color: Color,
+    val width: Float
+)
+
 @Composable
 fun DrawingNodeView(
     node: BoardNode.DrawingNode,
@@ -39,13 +47,19 @@ fun DrawingNodeView(
     onResizeFinished: (Size) -> Unit,
     onDelete: () -> Unit,
     onCopy: () -> Unit,
-    onStrokesUpdated: (List<List<Pair<Float, Float>>>) -> Unit
+    onStrokesUpdated: (List<List<Pair<Float, Float>>>) -> Unit,
+    onShowToolbar: () -> Unit,
+    currentStrokeWidth: Float,
+    currentStrokeColor: Color
 ) {
     var localPosition by remember(node.id) { mutableStateOf(node.position) }
     var localSize by remember(node.id) { mutableStateOf(node.size) }
-    // Локальные штрихи — работаем с ними сразу, сохраняем с задержкой
-    var localStrokes by remember(node.id) { mutableStateOf(node.strokes) }
-    var currentStroke by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+
+    // Десериализуем штрихи с метаданными
+    var localStrokes by remember(node.id) {
+        mutableStateOf(deserializeStrokes(node.strokes))
+    }
+    var currentStroke by remember { mutableStateOf<DrawingStroke?>(null) }
 
     val density = LocalDensity.current
 
@@ -57,7 +71,7 @@ fun DrawingNodeView(
 
     LaunchedEffect(node.position) { localPosition = node.position }
     LaunchedEffect(node.size)     { localSize = node.size }
-    LaunchedEffect(node.strokes)  { localStrokes = node.strokes }
+    LaunchedEffect(node.strokes)  { localStrokes = deserializeStrokes(node.strokes) }
 
     val screenX = with(density) { (localPosition.x * scale + offset.x).toDp() }
     val screenY = with(density) { (localPosition.y * scale + offset.y).toDp() }
@@ -76,37 +90,45 @@ fun DrawingNodeView(
                     color = if (isActive) MaterialTheme.colorScheme.primary else Color.Transparent,
                     shape = RoundedCornerShape(scaledCorner)
                 )
-                .pointerInput(node.id, isActive, scale) {
+                .pointerInput(node.id, isActive, scale, currentStrokeWidth, currentStrokeColor) {
                     awaitEachGesture {
                         val down = awaitFirstDown()
 
                         if (isActive) {
-                            // Активная нода: обычный tap/drag — рисуем
-                            var stroke = mutableListOf<Pair<Float, Float>>()
-                            stroke.add(Pair(down.position.x, down.position.y))
-                            currentStroke = stroke.toList()
+                            // Активная нода: рисуем
+                            val points = mutableListOf<Pair<Float, Float>>()
+                            points.add(Pair(down.position.x / scale, down.position.y / scale))
+                            currentStroke = DrawingStroke(
+                                points = points.toList(),
+                                color = currentStrokeColor,
+                                width = currentStrokeWidth
+                            )
 
                             while (true) {
                                 val event = awaitPointerEvent()
                                 val change = event.changes.find { it.id == down.id } ?: break
                                 if (!change.pressed) {
-                                    // Штрих завершён — сохраняем
-                                    if (stroke.size > 1) {
-                                        val newStrokes = localStrokes + listOf(stroke.toList())
+                                    // Штрих завершён
+                                    if (points.size > 1) {
+                                        val newStrokes = localStrokes + currentStroke!!
                                         localStrokes = newStrokes
-                                        currentStroke = emptyList()
-                                        onStrokesUpdated(newStrokes)
+                                        currentStroke = null
+                                        onStrokesUpdated(serializeStrokes(newStrokes))
                                     } else {
-                                        currentStroke = emptyList()
+                                        currentStroke = null
                                     }
                                     break
                                 }
-                                stroke.add(Pair(change.position.x, change.position.y))
-                                currentStroke = stroke.toList()
+                                points.add(Pair(change.position.x / scale, change.position.y / scale))
+                                currentStroke = DrawingStroke(
+                                    points = points.toList(),
+                                    color = currentStrokeColor,
+                                    width = currentStrokeWidth
+                                )
                                 change.consume()
                             }
                         } else {
-                            // Неактивная нода: долгое нажатие — перемещение, обычный тап — активация
+                            // Неактивная нода: долгое нажатие — перемещение
                             val longPress = awaitLongPressOrCancellation(down.id)
                             if (longPress != null) {
                                 var pointerId = longPress.id
@@ -149,52 +171,71 @@ fun DrawingNodeView(
                 ) {
                     // Сохранённые штрихи
                     localStrokes.forEach { stroke ->
-                        if (stroke.size < 2) return@forEach
+                        if (stroke.points.size < 2) return@forEach
                         val path = Path()
-                        path.moveTo(stroke[0].first, stroke[0].second)
-                        stroke.drop(1).forEach { (x, y) ->
-                            path.lineTo(x, y)
+                        path.moveTo(stroke.points[0].first * scale, stroke.points[0].second * scale)
+                        stroke.points.drop(1).forEach { (x, y) ->
+                            path.lineTo(x * scale, y * scale)
                         }
                         drawPath(
                             path = path,
-                            color = Color(0xFF1C1B1F),
-                            style = Stroke(width = 4f / scale)
+                            color = stroke.color,
+                            style = Stroke(width = stroke.width * scale)
                         )
                     }
+
                     // Текущий незавершённый штрих
-                    if (currentStroke.size >= 2) {
-                        val path = Path()
-                        path.moveTo(currentStroke[0].first, currentStroke[0].second)
-                        currentStroke.drop(1).forEach { (x, y) ->
-                            path.lineTo(x, y)
+                    currentStroke?.let { stroke ->
+                        if (stroke.points.size >= 2) {
+                            val path = Path()
+                            path.moveTo(stroke.points[0].first * scale, stroke.points[0].second * scale)
+                            stroke.points.drop(1).forEach { (x, y) ->
+                                path.lineTo(x * scale, y * scale)
+                            }
+                            drawPath(
+                                path = path,
+                                color = stroke.color,
+                                style = Stroke(width = stroke.width * scale)
+                            )
                         }
-                        drawPath(
-                            path = path,
-                            color = Color(0xFF1C1B1F),
-                            style = Stroke(width = 4f / scale)
-                        )
                     }
-                    // Подсказка если нода пустая и неактивная
                 }
 
-                // Подсказка поверх канваса
-                if (localStrokes.isEmpty() && currentStroke.isEmpty()) {
+                // Подсказка
+                if (localStrokes.isEmpty() && currentStroke == null) {
                     Text(
                         text = if (isActive) "Рисуйте здесь..." else "Нажмите для рисования",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
                 // Меню опций
-                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                Column(
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     NodeOptionsMenu(
                         onCopy = onCopy,
                         onDelete = onDelete,
                         iconSizeDp = scaledMenuIcon
                     )
+
+                    // Кнопка настроек
+                    if (isActive) {
+                        IconButton(
+                            onClick = onShowToolbar,
+                            modifier = Modifier.size(scaledMenuIcon)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Настройки рисования",
+                                modifier = Modifier.fillMaxSize(0.6f),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -218,5 +259,59 @@ fun DrawingNodeView(
                     }
             )
         }
+    }
+}
+
+private fun serializeStrokes(
+    strokes: List<DrawingStroke>
+): List<List<Pair<Float, Float>>> {
+
+    return strokes.map { stroke ->
+
+        val r = stroke.color.red
+        val g = stroke.color.green
+        val b = stroke.color.blue
+
+        listOf(
+            Pair(-1f, stroke.width),
+            Pair(r, g),
+            Pair(b, stroke.color.alpha)
+        ) + stroke.points
+    }
+}
+
+private fun deserializeStrokes(
+    serialized: List<List<Pair<Float, Float>>>
+): List<DrawingStroke> {
+
+    return serialized.mapNotNull { stroke ->
+
+        if (stroke.isEmpty()) return@mapNotNull null
+
+        val first = stroke.first()
+
+        // Старый формат
+        if (first.first != -1f) {
+            return@mapNotNull DrawingStroke(
+                points = stroke,
+                color = Color.Black,
+                width = 4f
+            )
+        }
+
+        if (stroke.size < 4) return@mapNotNull null
+
+        val width = stroke[0].second
+
+        val r = stroke[1].first
+        val g = stroke[1].second
+        val b = stroke[2].first
+        val a = stroke[2].second
+
+        DrawingStroke(
+            points = stroke.drop(3),
+            color = Color(r, g, b, a),
+            width = width
+        )
     }
 }

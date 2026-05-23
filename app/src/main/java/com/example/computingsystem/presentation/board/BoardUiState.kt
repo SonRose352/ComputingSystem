@@ -21,6 +21,11 @@ data class BoardUiState(
     val mergeOperator: String = "+",
     val mergeDialogOffset: Offset = Offset.Zero,
     val pendingCopyNodeId: String? = null,
+
+    val showDrawingToolbar: Boolean = false,
+    val drawingToolbarNodeId: String? = null,
+    val drawingStrokeWidth: Float = 4f,
+    val drawingStrokeColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
 )
 
 enum class NodeType {
