@@ -48,6 +48,8 @@ import com.example.computingsystem.presentation.board.components.InfiniteCanvas
 import com.example.computingsystem.presentation.board.components.MapPinNameDialog
 import com.example.computingsystem.presentation.board.components.MapPinOverlay
 import com.example.computingsystem.presentation.board.components.MergeDialog
+import com.example.computingsystem.presentation.board.components.SplitErrorDialog
+import com.example.computingsystem.presentation.board.components.SplitMathNodeDialog
 import com.example.computingsystem.presentation.calculator.CalculatorAction
 import com.example.computingsystem.presentation.calculator.CalculatorViewModel
 import com.example.computingsystem.presentation.components.HistoryDialog
@@ -156,6 +158,9 @@ fun BoardScreen(
             },
             currentStrokeWidth = boardState.drawingStrokeWidth,
             currentStrokeColor = boardState.drawingStrokeColor,
+            onSplitMathNode = { nodeId ->
+                boardViewModel.onAction(BoardAction.StartSplitMathNode(nodeId))
+            },
             modifier = Modifier
                 .fillMaxSize()
         )
@@ -497,6 +502,42 @@ fun BoardScreen(
                     }
                 }
             )
+        }
+
+        if (boardState.showSplitDialog) {
+            if (boardState.splitErrorType != null) {
+                val errorMessage = when (boardState.splitErrorType) {
+                    SplitErrorType.EMPTY_BLOCK -> "Математический блок пустой. Заполните выражение перед разбиением."
+                    SplitErrorType.ERROR_RESULT -> "Результат вычисления содержит ошибку. Исправьте выражение перед разбиением."
+                    SplitErrorType.INVALID_PERCENT -> "Процент должен быть в диапазоне от 0 до 100."
+                    null -> ""
+                }
+
+                SplitErrorDialog(
+                    errorMessage = errorMessage,
+                    onDismiss = {
+                        boardViewModel.onAction(BoardAction.DismissSplitDialog)
+                    }
+                )
+            }
+            else {
+                SplitMathNodeDialog(
+                    firstPercent = boardState.splitFirstPercent,
+                    onFirstPercentChange = { newPercent ->
+                        boardViewModel.onAction(
+                            BoardAction.UpdateSplitPercent(newPercent)
+                        )
+                    },
+                    onConfirm = {
+                        boardViewModel.onAction(
+                            BoardAction.ConfirmSplitMathNode(boardState.splitFirstPercent)
+                        )
+                    },
+                    onDismiss = {
+                        boardViewModel.onAction(BoardAction.DismissSplitDialog)
+                    }
+                )
+            }
         }
     }
 

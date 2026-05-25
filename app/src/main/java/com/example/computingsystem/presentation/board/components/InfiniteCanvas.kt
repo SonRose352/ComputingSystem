@@ -48,6 +48,7 @@ fun InfiniteCanvas(
     onRecognizeDrawing: (String) -> Unit,
     currentStrokeWidth: Float,
     currentStrokeColor: Color,
+    onSplitMathNode: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
@@ -209,6 +210,7 @@ fun InfiniteCanvas(
                     onPinned = { onNodePinned(node.id) },
                     onUnpinned = { onNodeUnpinned(node.id) },
                     onCopy = { onCopyNode(node.id) },
+                    onSplitRequested = { onSplitMathNode(node.id) },
                 )
                 is BoardNode.DrawingNode -> DrawingNodeView(
                     node = node,

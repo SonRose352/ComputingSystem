@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,6 +57,7 @@ fun MathNodeView(
     onPinned: () -> Unit,
     onUnpinned: () -> Unit,
     onCopy: () -> Unit,
+    onSplitRequested: () -> Unit,
 ) {
     var localPosition by remember(node.id) { mutableStateOf(node.position) }
     var localSize     by remember(node.id) { mutableStateOf(node.size) }
@@ -85,9 +87,7 @@ fun MathNodeView(
     val screenX = with(density) { (localPosition.x * scale + offset.x).toDp() }
     val screenY = with(density) { (localPosition.y * scale + offset.y).toDp() }
 
-    // Отслеживаем расстояние между двумя пальцами чтобы поймать pinch-in
-    // Храним начальное расстояние в момент второго касания
-    var initialDistance by remember { mutableStateOf<Float?>(null) }
+    var initialPinchDistance by remember { mutableStateOf<Float?>(null) }
 
     Box(
         modifier = Modifier
@@ -100,15 +100,23 @@ fun MathNodeView(
                 .fillMaxSize()
                 .border(width = borderWidth, color = borderColor, shape = RoundedCornerShape(scaledCorner))
                 .pointerInput(node.id, node.result, scale) {
+                    // Детектор для pinch-жеста
+                    var initialDistance: Float? = null
+
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        // Отслеживаем только pinch-out (zoom > 1)
+                        if (zoom > 1.2f && initialDistance == null) {
+                            onSplitRequested()
+                            initialDistance = 0f // чтобы не вызывать повторно
+                        }
+                    }
+                }
+                .pointerInput(node.id, node.result, scale) {
                     awaitEachGesture {
-
                         val down = awaitFirstDown()
-
                         val longPress = awaitLongPressOrCancellation(down.id)
 
-                        // LONG PRESS
                         if (longPress != null) {
-
                             if (node.result.isNotEmpty() && node.result != "Ошибка") {
                                 onPinned()
                             }
@@ -116,25 +124,18 @@ fun MathNodeView(
                             var pointerId = longPress.id
 
                             while (true) {
-
                                 val event = awaitPointerEvent()
+                                val change = event.changes.find { it.id == pointerId } ?: continue
 
-                                val change = event.changes.find {
-                                    it.id == pointerId
-                                } ?: continue
-
-                                // Палец отпущен
                                 if (!change.pressed) {
                                     onMoveFinished(localPosition)
                                     onUnpinned()
                                     break
                                 }
 
-                                // Drag
                                 val drag = change.position - change.previousPosition
 
                                 if (drag != Offset.Zero) {
-
                                     localPosition = Position(
                                         localPosition.x + drag.x / scale,
                                         localPosition.y + drag.y / scale
@@ -143,10 +144,7 @@ fun MathNodeView(
                                     change.consume()
                                 }
                             }
-                        }
-
-                        // Обычный tap
-                        else {
+                        } else {
                             onClick()
                         }
                     }

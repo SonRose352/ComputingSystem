@@ -112,6 +112,130 @@ class BoardViewModel @Inject constructor(
             is BoardAction.NavigateToMapPin        -> navigateToMapPin(action.pinId)
             is BoardAction.DeleteMapPin            -> deleteMapPin(action.pinId)
             is BoardAction.UpdateScreenSize        -> updateScreenSize(action.width, action.height)
+            is BoardAction.StartSplitMathNode     -> startSplitMathNode(action.nodeId)
+            is BoardAction.ConfirmSplitMathNode   -> confirmSplitMathNode(action.firstPercent)
+            is BoardAction.DismissSplitDialog     -> dismissSplitDialog()
+            is BoardAction.UpdateSplitPercent -> updateSplitPercent(action.percent)
+        }
+    }
+
+    private fun updateSplitPercent(percent: Float) {
+        _uiState.update {
+            it.copy(splitFirstPercent = percent)
+        }
+    }
+
+    private fun startSplitMathNode(nodeId: String) {
+        val node = nodes.value.find { it.id == nodeId } as? BoardNode.MathNode ?: return
+
+        when {
+            node.expression.isEmpty() -> {
+                _uiState.update {
+                    it.copy(
+                        showSplitDialog = true,
+                        splitNodeId = nodeId,
+                        splitErrorType = SplitErrorType.EMPTY_BLOCK
+                    )
+                }
+            }
+            node.result.isEmpty() || node.result == "Ошибка" -> {
+                _uiState.update {
+                    it.copy(
+                        showSplitDialog = true,
+                        splitNodeId = nodeId,
+                        splitErrorType = SplitErrorType.ERROR_RESULT
+                    )
+                }
+            }
+            else -> {
+                _uiState.update {
+                    it.copy(
+                        showSplitDialog = true,
+                        splitNodeId = nodeId,
+                        splitFirstPercent = 50f,
+                        splitErrorType = null
+                    )
+                }
+            }
+        }
+    }
+
+    private fun confirmSplitMathNode(firstPercent: Float) {
+        val state = _uiState.value
+        val nodeId = state.splitNodeId ?: return
+        val node = nodes.value.find { it.id == nodeId } as? BoardNode.MathNode ?: return
+
+        if (firstPercent !in 0f..100f) {
+            _uiState.update {
+                it.copy(splitErrorType = SplitErrorType.INVALID_PERCENT)
+            }
+            return
+        }
+
+        if (state.splitErrorType != null) {
+            return
+        }
+
+        val originalValue = node.result.toDoubleOrNull() ?: run {
+            dismissSplitDialog()
+            return
+        }
+
+        val firstValue = originalValue * (firstPercent / 100.0)
+        val secondValue = originalValue * ((100f - firstPercent) / 100.0)
+
+        val firstFormatted = if (firstValue % 1.0 == 0.0) {
+            firstValue.toLong().toString()
+        } else {
+            firstValue.toBigDecimal().stripTrailingZeros().toPlainString()
+        }
+
+        val secondFormatted = if (secondValue % 1.0 == 0.0) {
+            secondValue.toLong().toString()
+        } else {
+            secondValue.toBigDecimal().stripTrailingZeros().toPlainString()
+        }
+
+        viewModelScope.launch {
+            val offset = 100f
+
+            val firstNode = BoardNode.MathNode(
+                position = Position(
+                    x = node.position.x - offset,
+                    y = node.position.y
+                ),
+                size = node.size,
+                expression = firstFormatted,
+                result = firstFormatted
+            )
+
+            val secondNode = BoardNode.MathNode(
+                position = Position(
+                    x = node.position.x + offset,
+                    y = node.position.y
+                ),
+                size = node.size,
+                expression = secondFormatted,
+                result = secondFormatted
+            )
+
+            deleteNode(nodeId)
+
+            addNode(firstNode)
+            addNode(secondNode)
+        }
+
+        dismissSplitDialog()
+    }
+
+    private fun dismissSplitDialog() {
+        _uiState.update {
+            it.copy(
+                showSplitDialog = false,
+                splitNodeId = null,
+                splitFirstPercent = 50f,
+                splitErrorType = null
+            )
         }
     }
 

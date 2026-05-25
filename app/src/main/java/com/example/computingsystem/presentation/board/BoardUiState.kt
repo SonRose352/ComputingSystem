@@ -38,8 +38,19 @@ data class BoardUiState(
     val showMapPinNameDialog: Boolean = false,
     val screenWidth: Float = 0f,
     val screenHeight: Float = 0f,
+
+    val showSplitDialog: Boolean = false,
+    val splitNodeId: String? = null,
+    val splitFirstPercent: Float = 50f,
+    val splitErrorType: SplitErrorType? = null,
 )
 
 enum class NodeType {
     TEXT, MATH, DRAWING
+}
+
+enum class SplitErrorType {
+    EMPTY_BLOCK,
+    ERROR_RESULT,
+    INVALID_PERCENT
 }

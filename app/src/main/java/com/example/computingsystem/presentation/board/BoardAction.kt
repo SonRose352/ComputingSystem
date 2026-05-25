@@ -60,4 +60,9 @@ sealed class BoardAction {
     data class NavigateToMapPin(val pinId: String) : BoardAction()
     data class DeleteMapPin(val pinId: String) : BoardAction()
     data class UpdateScreenSize(val width: Float, val height: Float) : BoardAction()
+
+    data class StartSplitMathNode(val nodeId: String) : BoardAction()
+    data class ConfirmSplitMathNode(val firstPercent: Float) : BoardAction()
+    data object DismissSplitDialog : BoardAction()
+    data class UpdateSplitPercent(val percent: Float) : BoardAction()
 }
