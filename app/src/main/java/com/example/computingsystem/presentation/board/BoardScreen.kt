@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.computingsystem.R
+import com.example.computingsystem.domain.model.AppLanguage
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.presentation.board.components.ContextAddMenu
 import com.example.computingsystem.presentation.board.components.DrawingToolbar
@@ -54,16 +55,20 @@ import com.example.computingsystem.presentation.calculator.CalculatorAction
 import com.example.computingsystem.presentation.calculator.CalculatorViewModel
 import com.example.computingsystem.presentation.components.HistoryDialog
 import com.example.computingsystem.presentation.components.MathKeyboard
+import com.example.computingsystem.presentation.settings.SettingsViewModel
 
 @Composable
 fun BoardScreen(
     calculatorViewModel: CalculatorViewModel = hiltViewModel(),
-    boardViewModel: BoardViewModel = hiltViewModel()
+    boardViewModel: BoardViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val boardState by boardViewModel.uiState.collectAsState()
     val nodes by boardViewModel.nodes.collectAsState()
     val history by calculatorViewModel.history.collectAsState()
     val mapPins by boardViewModel.mapPins.collectAsState()
+    val settings by settingsViewModel.settings.collectAsState()
+    val isRu = settings.language == AppLanguage.RUSSIAN
 
     var showHistory by remember { mutableStateOf(false) }
 
@@ -202,7 +207,7 @@ fun BoardScreen(
                 offset = DpOffset(0.dp, 8.dp)
             ) {
                 DropdownMenuItem(
-                    text = { Text("Текстовое поле") },
+                    text = { Text(if (isRu) "Текстовое поле" else "Text block") },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_text_node),
@@ -213,7 +218,7 @@ fun BoardScreen(
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.TEXT)) }
                 )
                 DropdownMenuItem(
-                    text = { Text("Математическое выражение") },
+                    text = { Text(if (isRu) "Математическое выражение" else "Math expression") },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_math_node),
@@ -224,7 +229,7 @@ fun BoardScreen(
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.MATH)) }
                 )
                 DropdownMenuItem(
-                    text = { Text("Рисунок") },
+                    text = { Text(if (isRu) "Рисунок" else "Drawing") },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_drawing_node),
@@ -325,7 +330,7 @@ fun BoardScreen(
 
                 // Кнопка добавления
                 DropdownMenuItem(
-                    text = { Text("Добавить") },
+                    text = { Text(if (isRu) "Добавить" else "Add") },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_map_pin_plus),
@@ -354,10 +359,16 @@ fun BoardScreen(
         )
 
         val placingHintText = when {
-            boardState.isPlacingMapPin           -> "Нажмите на доску, чтобы разместить точку"
-            boardState.pendingCopyNodeId != null -> "Нажмите на доску, чтобы вставить копию"
-            boardState.selectedNodeType != null  -> "Нажмите на доску, чтобы разместить блок"
-            else                                 -> null
+            boardState.isPlacingMapPin           ->
+                if (isRu) "Нажмите на доску, чтобы разместить точку"
+                else "Tap the board to place a pin"
+            boardState.pendingCopyNodeId != null ->
+                if (isRu) "Нажмите на доску, чтобы вставить копию"
+                else "Tap the board to paste a copy"
+            boardState.selectedNodeType != null  ->
+                if (isRu) "Нажмите на доску, чтобы разместить блок"
+                else "Tap the board to place a block"
+            else -> null
         }
 
         if (placingHintText != null) {
@@ -544,6 +555,7 @@ fun BoardScreen(
     if (showHistory) {
         HistoryDialog(
             history = history,
+            language = settings.language,
             onDismiss = { showHistory = false },
             onUseExpression = { expr ->
                 showHistory = false

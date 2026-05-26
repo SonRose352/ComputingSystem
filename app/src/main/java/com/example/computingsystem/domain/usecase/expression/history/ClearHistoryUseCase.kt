@@ -1,4 +1,4 @@
-package com.example.computingsystem.domain.usecase
+package com.example.computingsystem.domain.usecase.expression.history
 
 import com.example.computingsystem.domain.repository.IExpressionRepository
 import javax.inject.Inject

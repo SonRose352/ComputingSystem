@@ -3,9 +3,11 @@ package com.example.computingsystem.di
 import com.example.computingsystem.data.repository.BoardRepositoryImpl
 import com.example.computingsystem.data.repository.ExpressionRepositoryImpl
 import com.example.computingsystem.data.repository.MapPinRepositoryImpl
+import com.example.computingsystem.data.repository.SettingsRepositoryImpl
 import com.example.computingsystem.domain.repository.IBoardRepository
 import com.example.computingsystem.domain.repository.IExpressionRepository
 import com.example.computingsystem.domain.repository.IMapPinRepository
+import com.example.computingsystem.domain.repository.ISettingsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -33,4 +35,10 @@ abstract class RepositoryModule {
     abstract fun bindMapPinRepository(
         impl: MapPinRepositoryImpl
     ): IMapPinRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(
+        impl: SettingsRepositoryImpl
+    ): ISettingsRepository
 }

@@ -20,14 +20,17 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.computingsystem.R
 import com.example.computingsystem.presentation.components.HistoryDialog
+import com.example.computingsystem.presentation.settings.SettingsViewModel
 import kotlinx.coroutines.delay
 
 @Composable
 fun CalculatorScreen(
-    viewModel: CalculatorViewModel = hiltViewModel()
+    viewModel: CalculatorViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val history by viewModel.history.collectAsState()
+    val settings by settingsViewModel.settings.collectAsState()
 
     Column(
         modifier = Modifier
@@ -77,6 +80,7 @@ fun CalculatorScreen(
     if (state.showHistory) {
         HistoryDialog(
             history = history,
+            language = settings.language,
             onDismiss = { viewModel.onAction(CalculatorAction.HideHistory) },
             onUseExpression = { expr ->
                 viewModel.onAction(CalculatorAction.UseFromHistory(expr.result))

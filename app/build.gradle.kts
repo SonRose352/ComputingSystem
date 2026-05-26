@@ -85,4 +85,7 @@ dependencies {
 
     //ML Kit
     implementation(libs.digital.ink.recognition)
+
+    //DataStore
+    implementation(libs.androidx.datastore.preferences)
 }

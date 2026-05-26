@@ -5,16 +5,18 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.computingsystem.domain.model.Expression
-import com.example.computingsystem.domain.usecase.ClearHistoryUseCase
-import com.example.computingsystem.domain.usecase.DeleteExpressionUseCase
-import com.example.computingsystem.domain.usecase.EvaluateExpressionUseCase
-import com.example.computingsystem.domain.usecase.GetHistoryUseCase
-import com.example.computingsystem.domain.usecase.SaveExpressionUseCase
+import com.example.computingsystem.domain.repository.ISettingsRepository
+import com.example.computingsystem.domain.usecase.expression.history.ClearHistoryUseCase
+import com.example.computingsystem.domain.usecase.expression.DeleteExpressionUseCase
+import com.example.computingsystem.domain.usecase.expression.EvaluateExpressionUseCase
+import com.example.computingsystem.domain.usecase.expression.history.GetHistoryUseCase
+import com.example.computingsystem.domain.usecase.expression.SaveExpressionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,7 +29,8 @@ class CalculatorViewModel @Inject constructor(
     private val save: SaveExpressionUseCase,
     private val getHistory: GetHistoryUseCase,
     private val deleteExpression: DeleteExpressionUseCase,
-    private val clearHistory: ClearHistoryUseCase
+    private val clearHistory: ClearHistoryUseCase,
+    private val settingsRepository: ISettingsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalculatorUiState())
@@ -35,6 +38,14 @@ class CalculatorViewModel @Inject constructor(
 
     val history: StateFlow<List<Expression>> = getHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            settingsRepository.getSettings().first().let { settings ->
+                _uiState.update { it.copy(angleMode = settings.defaultAngleMode) }
+            }
+        }
+    }
 
     private val functionTokens = setOf(
         "sin(", "cos(", "tan(", "sqrt(",

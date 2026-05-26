@@ -1,10 +1,14 @@
-package com.example.computingsystem.domain.usecase
+package com.example.computingsystem.domain.usecase.expression
 
 import com.example.computingsystem.presentation.calculator.AngleMode
 import net.objecthunter.exp4j.ExpressionBuilder
-import javax.inject.Inject
-import kotlin.math.*
 import net.objecthunter.exp4j.function.Function
+import javax.inject.Inject
+import kotlin.math.absoluteValue
+import kotlin.math.acos
+import kotlin.math.asin
+import kotlin.math.atan
+import kotlin.math.log10
 
 class EvaluateExpressionUseCase @Inject constructor() {
 

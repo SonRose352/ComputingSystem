@@ -1,4 +1,4 @@
-package com.example.computingsystem.domain.usecase
+package com.example.computingsystem.domain.usecase.boardnode
 
 import com.example.computingsystem.domain.repository.IBoardRepository
 import javax.inject.Inject
