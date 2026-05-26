@@ -1,5 +1,6 @@
 package com.example.computingsystem
 
+import android.app.Activity
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -44,24 +45,22 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
 
             LaunchedEffect(settings.language) {
-
                 val locale = when (settings.language) {
                     AppLanguage.RUSSIAN -> Locale("ru")
                     AppLanguage.ENGLISH -> Locale("en")
                 }
 
+                val currentLocale = context.resources.configuration.locales[0]
+                if (currentLocale.language == locale.language) return@LaunchedEffect
+
                 Locale.setDefault(locale)
 
-                val config = Configuration(
-                    context.resources.configuration
-                )
-
+                val config = Configuration(context.resources.configuration)
                 config.setLocale(locale)
+                context.resources.updateConfiguration(config, context.resources.displayMetrics)
 
-                context.resources.updateConfiguration(
-                    config,
-                    context.resources.displayMetrics
-                )
+                // Пересоздаём активити — единственный надёжный способ
+                (context as? Activity)?.recreate()
             }
 
             val darkTheme = when (settings.theme) {
