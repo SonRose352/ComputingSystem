@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.computingsystem.R
 
@@ -36,7 +37,7 @@ fun NodeOptionsMenu(
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
-                contentDescription = "Настройки",
+                contentDescription = stringResource(R.string.node_settings),
                 modifier = Modifier.fillMaxSize(0.6f)
             )
         }
@@ -45,7 +46,7 @@ fun NodeOptionsMenu(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("Копировать") },
+                text = { Text(stringResource(R.string.node_copy)) },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(R.drawable.ic_copy),
@@ -56,7 +57,7 @@ fun NodeOptionsMenu(
                 onClick = { expanded = false; onCopy() }
             )
             DropdownMenuItem(
-                text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
+                text = { Text(stringResource(R.string.node_delete), color = MaterialTheme.colorScheme.error) },
                 leadingIcon = {
                     Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                 },

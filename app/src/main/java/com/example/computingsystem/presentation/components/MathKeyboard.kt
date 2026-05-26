@@ -14,9 +14,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.computingsystem.R
 
 enum class MathKeyboardMode {
     BASIC,
@@ -137,7 +139,7 @@ private fun ExpressionPreview(
 
                 item {
                     Text(
-                        text = "Введите выражение...",
+                        text = stringResource(R.string.math_keyboard_expression_hint),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -201,7 +203,7 @@ private fun TopControlBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Clear,
-                contentDescription = "Очистить",
+                contentDescription = stringResource(R.string.calculator_clear),
                 tint = MaterialTheme.colorScheme.error
             )
         }

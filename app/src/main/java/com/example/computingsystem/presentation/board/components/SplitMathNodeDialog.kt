@@ -7,10 +7,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.computingsystem.R
 
 @Composable
 fun SplitMathNodeDialog(
@@ -32,13 +34,13 @@ fun SplitMathNodeDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Разбиение блока",
+                    text = stringResource(R.string.split_dialog_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Введите, на какие два блока разбить текущий результат (в процентах):",
+                    text = stringResource(R.string.split_dialog_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -60,7 +62,7 @@ fun SplitMathNodeDialog(
                                 onFirstPercentChange(value)
                             }
                         },
-                        label = { Text("Первый блок") },
+                        label = { Text(stringResource(R.string.split_dialog_first_block)) },
                         suffix = { Text("%") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
@@ -75,7 +77,7 @@ fun SplitMathNodeDialog(
                     OutlinedTextField(
                         value = (100f - firstPercent).toString(),
                         onValueChange = {},
-                        label = { Text("Второй блок") },
+                        label = { Text(stringResource(R.string.split_dialog_second_block)) },
                         suffix = { Text("%") },
                         enabled = false,
                         singleLine = true,
@@ -91,14 +93,14 @@ fun SplitMathNodeDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Отмена")
+                        Text(stringResource(R.string.split_dialog_cancel))
                     }
 
                     Button(
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Разбить")
+                        Text(stringResource(R.string.split_dialog_confirm))
                     }
                 }
             }

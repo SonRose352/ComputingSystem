@@ -34,10 +34,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.computingsystem.R
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
@@ -171,7 +173,7 @@ fun MathNodeView(
                 ) {
                     if (node.expression.isEmpty()) {
                         Text(
-                            text = if (isActive) "Используйте клавиатуру снизу..." else "Введите выражение...",
+                            text = if (isActive) stringResource(R.string.math_node_placeholder_active) else stringResource(R.string.math_node_placeholder_inactive),
                             style = TextStyle(
                                 fontSize = scaledFont, lineHeight = scaledFont,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -193,7 +195,7 @@ fun MathNodeView(
                             text = "= ${node.result}",
                             style = TextStyle(
                                 fontSize = scaledResultFont, lineHeight = scaledResultFont,
-                                color = if (node.result == "Ошибка") MaterialTheme.colorScheme.error
+                                color = if (node.result == stringResource(R.string.calculator_error)) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.primary,
                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                             ),

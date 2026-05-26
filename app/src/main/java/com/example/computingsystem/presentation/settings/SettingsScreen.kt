@@ -6,11 +6,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.computingsystem.domain.model.AppLanguage
 import com.example.computingsystem.domain.model.AppTheme
 import com.example.computingsystem.presentation.calculator.AngleMode
+import com.example.computingsystem.R
 
 @Composable
 fun SettingsScreen(
@@ -26,7 +28,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = if (settings.language == AppLanguage.RUSSIAN) "Настройки" else "Settings",
+            text = stringResource(R.string.settings_title),
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -34,15 +36,15 @@ fun SettingsScreen(
 
         // ── Тема ──────────────────────────────────────────────
         SettingsSectionTitle(
-            if (settings.language == AppLanguage.RUSSIAN) "Внешний вид" else "Appearance"
+            stringResource(R.string.settings_appearance)
         )
 
         SettingsSegmentedRow(
-            label = if (settings.language == AppLanguage.RUSSIAN) "Тема" else "Theme",
+            label = stringResource(R.string.settings_theme),
             options = listOf(
-                AppTheme.SYSTEM to  if (settings.language == AppLanguage.RUSSIAN) "Авто"    else "Auto",
-                AppTheme.LIGHT  to  if (settings.language == AppLanguage.RUSSIAN) "Светлая" else "Light",
-                AppTheme.DARK   to  if (settings.language == AppLanguage.RUSSIAN) "Тёмная"  else "Dark"
+                AppTheme.SYSTEM to  stringResource(R.string.settings_theme_auto),
+                AppTheme.LIGHT  to  stringResource(R.string.settings_theme_light),
+                AppTheme.DARK   to  stringResource(R.string.settings_theme_dark)
             ),
             selected = settings.theme,
             onSelect = { viewModel.setTheme(it) }
@@ -51,12 +53,10 @@ fun SettingsScreen(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // ── Язык ──────────────────────────────────────────────
-        SettingsSectionTitle(
-            if (settings.language == AppLanguage.RUSSIAN) "Язык" else "Language"
-        )
+        SettingsSectionTitle(stringResource(R.string.settings_language_section))
 
         SettingsSegmentedRow(
-            label = if (settings.language == AppLanguage.RUSSIAN) "Язык интерфейса" else "Interface language",
+            label = stringResource(R.string.settings_language),
             options = listOf(
                 AppLanguage.RUSSIAN to "Русский",
                 AppLanguage.ENGLISH to "English"
@@ -69,12 +69,11 @@ fun SettingsScreen(
 
         // ── Калькулятор ───────────────────────────────────────
         SettingsSectionTitle(
-            if (settings.language == AppLanguage.RUSSIAN) "Калькулятор" else "Calculator"
+            stringResource(R.string.settings_calculator)
         )
 
         SettingsSegmentedRow(
-            label = if (settings.language == AppLanguage.RUSSIAN)
-                "Угол по умолчанию" else "Default angle mode",
+            label = stringResource(R.string.settings_angle_mode),
             options = listOf(
                 AngleMode.RAD to "RAD",
                 AngleMode.DEG to "DEG"

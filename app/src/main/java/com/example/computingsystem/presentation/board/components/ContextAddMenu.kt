@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -48,7 +49,7 @@ fun ContextAddMenu(
         ) {
             Column(modifier = Modifier.width(220.dp)) {
                 DropdownMenuItem(
-                    text = { Text("Текстовое поле") },
+                    text = { Text(stringResource(R.string.board_text_block)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_text_node),
@@ -60,7 +61,7 @@ fun ContextAddMenu(
                 )
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("Математическое выражение") },
+                    text = { Text(stringResource(R.string.board_math_expression)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_math_node),
@@ -72,7 +73,7 @@ fun ContextAddMenu(
                 )
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("Рисунок") },
+                    text = { Text(stringResource(R.string.board_drawing)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_drawing_node),

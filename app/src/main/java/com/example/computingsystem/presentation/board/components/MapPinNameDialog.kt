@@ -7,6 +7,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.example.computingsystem.R
 
 @Composable
 fun MapPinNameDialog(
@@ -17,24 +19,24 @@ fun MapPinNameDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Название точки") },
+        title = { Text(stringResource(R.string.map_pin_dialog_title)) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Введите название") },
+                label = { Text(stringResource(R.string.map_pin_dialog_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }) {
-                Text("Добавить")
+                Text(stringResource(R.string.map_pin_dialog_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена")
+                Text(stringResource(R.string.map_pin_dialog_cancel))
             }
         }
     )

@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,14 +55,14 @@ fun DrawingToolbar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Инструменты рисования",
+                    text = stringResource(R.string.drawing_toolbar_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onClose) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Закрыть"
+                        contentDescription = stringResource(R.string.drawing_toolbar_close)
                     )
                 }
             }
@@ -86,7 +87,7 @@ fun DrawingToolbar(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Толщина",
+                                text = stringResource(R.string.drawing_thickness),
                                 style = MaterialTheme.typography.bodyMedium
                             )
 
@@ -140,7 +141,7 @@ fun DrawingToolbar(
                     ) {
 
                         Text(
-                            text = "Цвет",
+                            text = stringResource(R.string.drawing_color),
                             style = MaterialTheme.typography.bodyMedium
                         )
 
@@ -170,13 +171,13 @@ fun DrawingToolbar(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_backspace),
-                                contentDescription = "Отменить",
+                                contentDescription = stringResource(R.string.drawing_undo),
                                 modifier = Modifier.size(20.dp)
                             )
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            Text("Отменить")
+                            Text(stringResource(R.string.drawing_undo))
                         }
 
                         // Очистить всё
@@ -189,13 +190,13 @@ fun DrawingToolbar(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Очистить",
+                                contentDescription = stringResource(R.string.drawing_clear),
                                 modifier = Modifier.size(20.dp)
                             )
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            Text("Очистить")
+                            Text(stringResource(R.string.drawing_clear))
                         }
                     }
                 }
@@ -240,7 +241,7 @@ private fun ColorPicker(
             )
 
             Text(
-                text = "Выбранный цвет",
+                text = stringResource(R.string.drawing_selected_color),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -289,7 +290,7 @@ private fun ColorPicker(
 
         Column {
             Text(
-                text = "Произвольный цвет",
+                text = stringResource(R.string.drawing_custom_color),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

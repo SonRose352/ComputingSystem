@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -193,7 +194,7 @@ fun BoardScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Добавить объект",
+                    contentDescription = stringResource(R.string.board_add_pin),
                     tint = if (boardState.selectedNodeType != null)
                         MaterialTheme.colorScheme.onPrimary
                     else
@@ -207,7 +208,7 @@ fun BoardScreen(
                 offset = DpOffset(0.dp, 8.dp)
             ) {
                 DropdownMenuItem(
-                    text = { Text(if (isRu) "Текстовое поле" else "Text block") },
+                    text = { Text(stringResource(R.string.board_text_block)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_text_node),
@@ -218,7 +219,7 @@ fun BoardScreen(
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.TEXT)) }
                 )
                 DropdownMenuItem(
-                    text = { Text(if (isRu) "Математическое выражение" else "Math expression") },
+                    text = { Text(stringResource(R.string.board_math_expression)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_math_node),
@@ -229,7 +230,7 @@ fun BoardScreen(
                     onClick = { boardViewModel.onAction(BoardAction.SelectNodeType(NodeType.MATH)) }
                 )
                 DropdownMenuItem(
-                    text = { Text(if (isRu) "Рисунок" else "Drawing") },
+                    text = { Text(stringResource(R.string.board_drawing)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_drawing_node),
@@ -256,7 +257,7 @@ fun BoardScreen(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_map_pin_area),
-                    contentDescription = "Навигация",
+                    contentDescription = stringResource(R.string.board_navigation),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
@@ -296,7 +297,7 @@ fun BoardScreen(
                                             if (pin.isVisible) R.drawable.ic_eye
                                             else R.drawable.ic_eye_slash
                                         ),
-                                        contentDescription = if (pin.isVisible) "Скрыть" else "Показать",
+                                        contentDescription = if (pin.isVisible) stringResource(R.string.map_pin_hide) else stringResource(R.string.map_pin_show),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -310,7 +311,7 @@ fun BoardScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "Удалить точку",
+                                        contentDescription = stringResource(R.string.map_pin_delete),
                                         modifier = Modifier.size(20.dp),
                                         tint = MaterialTheme.colorScheme.error
                                     )
@@ -330,7 +331,7 @@ fun BoardScreen(
 
                 // Кнопка добавления
                 DropdownMenuItem(
-                    text = { Text(if (isRu) "Добавить" else "Add") },
+                    text = { Text(stringResource(R.string.board_add_pin)) },
                     leadingIcon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_map_pin_plus),
@@ -348,7 +349,7 @@ fun BoardScreen(
         // Кнопка истории в правом верхнем углу
         Icon(
             painter = painterResource(R.drawable.ic_history),
-            contentDescription = "История",
+            contentDescription = stringResource(R.string.calculator_history),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -359,15 +360,9 @@ fun BoardScreen(
         )
 
         val placingHintText = when {
-            boardState.isPlacingMapPin           ->
-                if (isRu) "Нажмите на доску, чтобы разместить точку"
-                else "Tap the board to place a pin"
-            boardState.pendingCopyNodeId != null ->
-                if (isRu) "Нажмите на доску, чтобы вставить копию"
-                else "Tap the board to paste a copy"
-            boardState.selectedNodeType != null  ->
-                if (isRu) "Нажмите на доску, чтобы разместить блок"
-                else "Tap the board to place a block"
+            boardState.isPlacingMapPin -> stringResource(R.string.board_hint_place_pin)
+            boardState.pendingCopyNodeId != null -> stringResource(R.string.board_hint_paste_copy)
+            boardState.selectedNodeType != null -> stringResource(R.string.board_hint_place_block)
             else -> null
         }
 
@@ -482,7 +477,7 @@ fun BoardScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Text("Распознавание...")
+                    Text(stringResource(R.string.recognition_in_progress))
                 }
             }
         }
@@ -491,11 +486,11 @@ fun BoardScreen(
         if (boardState.showRecognitionWarning) {
             AlertDialog(
                 onDismissRequest = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) },
-                title = { Text("Внимание") },
-                text = { Text("Не все символы были распознаны корректно. Проверьте выражение.") },
+                title = { Text(stringResource(R.string.recognition_warning_title)) },
+                text = { Text(stringResource(R.string.recognition_warning_message)) },
                 confirmButton = {
                     TextButton(onClick = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) }) {
-                        Text("Понятно")
+                        Text(stringResource(R.string.recognition_ok))
                     }
                 }
             )
@@ -505,11 +500,11 @@ fun BoardScreen(
         boardState.recognitionError?.let { error ->
             AlertDialog(
                 onDismissRequest = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) },
-                title = { Text("Ошибка") },
+                title = { Text(stringResource(R.string.recognition_error_title)) },
                 text = { Text(error) },
                 confirmButton = {
                     TextButton(onClick = { boardViewModel.onAction(BoardAction.DismissRecognitionWarning) }) {
-                        Text("OK")
+                        Text(stringResource(R.string.recognition_ok))
                     }
                 }
             )
@@ -518,9 +513,9 @@ fun BoardScreen(
         if (boardState.showSplitDialog) {
             if (boardState.splitErrorType != null) {
                 val errorMessage = when (boardState.splitErrorType) {
-                    SplitErrorType.EMPTY_BLOCK -> "Математический блок пустой. Заполните выражение перед разбиением."
-                    SplitErrorType.ERROR_RESULT -> "Результат вычисления содержит ошибку. Исправьте выражение перед разбиением."
-                    SplitErrorType.INVALID_PERCENT -> "Процент должен быть в диапазоне от 0 до 100."
+                    SplitErrorType.EMPTY_BLOCK -> stringResource(R.string.split_error_empty)
+                    SplitErrorType.ERROR_RESULT -> stringResource(R.string.split_error_invalid_result)
+                    SplitErrorType.INVALID_PERCENT -> stringResource(R.string.split_error_invalid_percent)
                     null -> ""
                 }
 
@@ -555,7 +550,6 @@ fun BoardScreen(
     if (showHistory) {
         HistoryDialog(
             history = history,
-            language = settings.language,
             onDismiss = { showHistory = false },
             onUseExpression = { expr ->
                 showHistory = false

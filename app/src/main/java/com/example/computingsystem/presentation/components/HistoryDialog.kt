@@ -12,11 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.computingsystem.R
 import com.example.computingsystem.domain.model.AppLanguage
 import com.example.computingsystem.domain.model.Expression
 import java.time.format.DateTimeFormatter
@@ -24,14 +26,11 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HistoryDialog(
     history: List<Expression>,
-    language: AppLanguage,
     onDismiss: () -> Unit,
     onUseExpression: (Expression) -> Unit,
     onDeleteExpression: (Expression) -> Unit,
     onClearAll: () -> Unit
 ) {
-    val isRu = language == AppLanguage.RUSSIAN
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -59,7 +58,7 @@ fun HistoryDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isRu) "История" else "History",
+                            text = stringResource(R.string.history_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -67,14 +66,14 @@ fun HistoryDialog(
                             IconButton(onClick = onClearAll) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
-                                    contentDescription = if (isRu) "Очистить историю" else "Clear history",
+                                    contentDescription = stringResource(R.string.history_clear_all),
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = if (isRu) "Закрыть" else "Close"
+                                    contentDescription = stringResource(R.string.history_close)
                                 )
                             }
                         }
@@ -88,7 +87,7 @@ fun HistoryDialog(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (isRu) "История пуста" else "History is empty",
+                                text = stringResource(R.string.history_empty),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -101,7 +100,6 @@ fun HistoryDialog(
                             items(history.reversed()) { expression ->
                                 HistoryItem(
                                     expression = expression,
-                                    language = language,
                                     onUse = { onUseExpression(expression) },
                                     onDelete = { onDeleteExpression(expression) }
                                 )
@@ -117,11 +115,9 @@ fun HistoryDialog(
 @Composable
 private fun HistoryItem(
     expression: Expression,
-    language: AppLanguage,
     onUse: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val isRu = language == AppLanguage.RUSSIAN
     var showActions by remember { mutableStateOf(false) }
 
     Column(
@@ -167,7 +163,7 @@ private fun HistoryItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        if (isRu) "Использовать" else "Use",
+                        stringResource(R.string.history_use),
                         fontSize = 12.sp
                     )
                 }
@@ -184,7 +180,7 @@ private fun HistoryItem(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (isRu) "Удалить" else "Delete", fontSize = 12.sp)
+                    Text(stringResource(R.string.history_delete), fontSize = 12.sp)
                 }
             }
         }

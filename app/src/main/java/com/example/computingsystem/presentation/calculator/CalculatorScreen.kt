@@ -12,9 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -80,7 +80,6 @@ fun CalculatorScreen(
     if (state.showHistory) {
         HistoryDialog(
             history = history,
-            language = settings.language,
             onDismiss = { viewModel.onAction(CalculatorAction.HideHistory) },
             onUseExpression = { expr ->
                 viewModel.onAction(CalculatorAction.UseFromHistory(expr.result))
@@ -118,7 +117,7 @@ private fun DisplayPanel(
                 painter = painterResource(
                     if (isExpanded) R.drawable.ic_resize_in else R.drawable.ic_resize_out
                 ),
-                contentDescription = if (isExpanded) "Свернуть" else "Развернуть",
+                contentDescription = if (isExpanded) stringResource(R.string.calculator_collapse) else stringResource(R.string.calculator_expand),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .size(36.dp)
@@ -131,7 +130,7 @@ private fun DisplayPanel(
             // Кнопка истории
             Icon(
                 painter = painterResource(R.drawable.ic_history),
-                contentDescription = "История",
+                contentDescription = stringResource(R.string.calculator_history),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .size(36.dp)

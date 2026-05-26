@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Computing System</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_calculator">Calculator</string>
+    <string name="nav_board">Board</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Calculator Screen -->
+    <string name="calculator_expand">Expand</string>
+    <string name="calculator_collapse">Collapse</string>
+    <string name="calculator_history">History</string>
+    <string name="calculator_clear">Clear</string>
+    <string name="calculator_backspace">Backspace</string>
+    <string name="calculator_equals">Equals</string>
+    <string name="calculator_error">Error</string>
+    <string name="calculator_enter_expression">Enter expression...</string>
+
+    <!-- History Dialog -->
+    <string name="history_title">History</string>
+    <string name="history_empty">History is empty</string>
+    <string name="history_use">Use</string>
+    <string name="history_delete">Delete</string>
+    <string name="history_clear_all">Clear history</string>
+    <string name="history_close">Close</string>
+
+    <!-- Board Screen -->
+    <string name="board_add_object">Add object</string>
+    <string name="board_text_block">Text block</string>
+    <string name="board_math_expression">Math expression</string>
+    <string name="board_drawing">Drawing</string>
+    <string name="board_navigation">Navigation</string>
+    <string name="board_add_pin">Add</string>
+    <string name="board_hint_place_block">Tap the board to place a block</string>
+    <string name="board_hint_place_pin">Tap the board to place a pin</string>
+    <string name="board_hint_paste_copy">Tap the board to paste a copy</string>
+
+    <!-- Node Options -->
+    <string name="node_copy">Copy</string>
+    <string name="node_delete">Delete</string>
+    <string name="node_settings">Settings</string>
+
+    <!-- Map Pin Dialog -->
+    <string name="map_pin_dialog_title">Pin name</string>
+    <string name="map_pin_dialog_hint">Enter name</string>
+    <string name="map_pin_dialog_add">Add</string>
+    <string name="map_pin_dialog_cancel">Cancel</string>
+    <string name="map_pin_hide">Hide</string>
+    <string name="map_pin_show">Show</string>
+    <string name="map_pin_delete">Delete pin</string>
+
+    <!-- Merge Dialog -->
+    <string name="merge_swap">Swap</string>
+    <string name="merge_confirm">Confirm</string>
+
+    <!-- Drawing Toolbar -->
+    <string name="drawing_toolbar_title">Drawing tools</string>
+    <string name="drawing_toolbar_close">Close</string>
+    <string name="drawing_thickness">Thickness</string>
+    <string name="drawing_color">Color</string>
+    <string name="drawing_selected_color">Selected color</string>
+    <string name="drawing_custom_color">Custom color</string>
+    <string name="drawing_undo">Undo</string>
+    <string name="drawing_clear">Clear</string>
+    <string name="drawing_hint_active">Draw here...</string>
+    <string name="drawing_hint_inactive">Tap to draw</string>
+    <string name="drawing_recognize">Recognize expression</string>
+
+    <!-- Recognition -->
+    <string name="recognition_in_progress">Recognizing...</string>
+    <string name="recognition_warning_title">Warning</string>
+    <string name="recognition_warning_message">Some symbols were not recognized correctly. Please check the expression.</string>
+    <string name="recognition_error_title">Error</string>
+    <string name="recognition_ok">OK</string>
+    <string name="recognition_error_model">Failed to load recognition model</string>
+    <string name="recognition_error_prefix">Recognition error: %s</string>
+
+    <!-- Split Dialog -->
+    <string name="split_dialog_title">Split block</string>
+    <string name="split_dialog_description">Enter the percentage split for two blocks:</string>
+    <string name="split_dialog_first_block">First block</string>
+    <string name="split_dialog_second_block">Second block</string>
+    <string name="split_dialog_cancel">Cancel</string>
+    <string name="split_dialog_confirm">Split</string>
+
+    <!-- Split Error Dialog -->
+    <string name="split_error_title">Cannot split block</string>
+    <string name="split_error_empty">Math block is empty. Fill the expression before splitting.</string>
+    <string name="split_error_invalid_result">Calculation result contains an error. Fix the expression before splitting.</string>
+    <string name="split_error_invalid_percent">Percent must be between 0 and 100.</string>
+    <string name="split_error_ok">OK</string>
+
+    <!-- Text Node -->
+    <string name="text_node_placeholder">Enter text...</string>
+
+    <!-- Math Node -->
+    <string name="math_node_placeholder_active">Use keyboard below...</string>
+    <string name="math_node_placeholder_inactive">Enter expression...</string>
+
+    <!-- Math Keyboard -->
+    <string name="math_keyboard_expression_hint">Enter expression...</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_auto">Auto</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_language_section">Language</string>
+    <string name="settings_language">Interface language</string>
+    <string name="settings_calculator">Calculator</string>
+    <string name="settings_angle_mode">Default angle mode</string>
+</resources>

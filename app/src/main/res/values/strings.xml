@@ -1,3 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ComputingSystem</string>
+    <string name="app_name">Computing System</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_calculator">Калькулятор</string>
+    <string name="nav_board">Доска</string>
+    <string name="nav_settings">Настройки</string>
+
+    <!-- Calculator Screen -->
+    <string name="calculator_expand">Развернуть</string>
+    <string name="calculator_collapse">Свернуть</string>
+    <string name="calculator_history">История</string>
+    <string name="calculator_clear">Очистить</string>
+    <string name="calculator_backspace">Удалить</string>
+    <string name="calculator_equals">Равно</string>
+    <string name="calculator_error">Ошибка</string>
+    <string name="calculator_enter_expression">Введите выражение...</string>
+
+    <!-- History Dialog -->
+    <string name="history_title">История</string>
+    <string name="history_empty">История пуста</string>
+    <string name="history_use">Использовать</string>
+    <string name="history_delete">Удалить</string>
+    <string name="history_clear_all">Очистить историю</string>
+    <string name="history_close">Закрыть</string>
+
+    <!-- Board Screen -->
+    <string name="board_add_object">Добавить объект</string>
+    <string name="board_text_block">Текстовое поле</string>
+    <string name="board_math_expression">Математическое выражение</string>
+    <string name="board_drawing">Рисунок</string>
+    <string name="board_navigation">Навигация</string>
+    <string name="board_add_pin">Добавить</string>
+    <string name="board_hint_place_block">Нажмите на доску, чтобы разместить блок</string>
+    <string name="board_hint_place_pin">Нажмите на доску, чтобы разместить точку</string>
+    <string name="board_hint_paste_copy">Нажмите на доску, чтобы вставить копию</string>
+
+    <!-- Node Options -->
+    <string name="node_copy">Копировать</string>
+    <string name="node_delete">Удалить</string>
+    <string name="node_settings">Настройки</string>
+
+    <!-- Map Pin Dialog -->
+    <string name="map_pin_dialog_title">Название точки</string>
+    <string name="map_pin_dialog_hint">Введите название</string>
+    <string name="map_pin_dialog_add">Добавить</string>
+    <string name="map_pin_dialog_cancel">Отмена</string>
+    <string name="map_pin_hide">Скрыть</string>
+    <string name="map_pin_show">Показать</string>
+    <string name="map_pin_delete">Удалить точку</string>
+
+    <!-- Merge Dialog -->
+    <string name="merge_swap">Поменять местами</string>
+    <string name="merge_confirm">Подтвердить</string>
+
+    <!-- Drawing Toolbar -->
+    <string name="drawing_toolbar_title">Инструменты рисования</string>
+    <string name="drawing_toolbar_close">Закрыть</string>
+    <string name="drawing_thickness">Толщина</string>
+    <string name="drawing_color">Цвет</string>
+    <string name="drawing_selected_color">Выбранный цвет</string>
+    <string name="drawing_custom_color">Произвольный цвет</string>
+    <string name="drawing_undo">Отменить</string>
+    <string name="drawing_clear">Очистить</string>
+    <string name="drawing_hint_active">Рисуйте здесь...</string>
+    <string name="drawing_hint_inactive">Нажмите для рисования</string>
+    <string name="drawing_recognize">Распознать выражение</string>
+
+    <!-- Recognition -->
+    <string name="recognition_in_progress">Распознавание...</string>
+    <string name="recognition_warning_title">Внимание</string>
+    <string name="recognition_warning_message">Не все символы были распознаны корректно. Проверьте выражение.</string>
+    <string name="recognition_error_title">Ошибка</string>
+    <string name="recognition_ok">Понятно</string>
+    <string name="recognition_error_model">Не удалось загрузить модель распознавания</string>
+    <string name="recognition_error_prefix">Ошибка распознавания: %s</string>
+
+    <!-- Split Dialog -->
+    <string name="split_dialog_title">Разбиение блока</string>
+    <string name="split_dialog_description">Введите, на какие два блока разбить текущий результат (в процентах):</string>
+    <string name="split_dialog_first_block">Первый блок</string>
+    <string name="split_dialog_second_block">Второй блок</string>
+    <string name="split_dialog_cancel">Отмена</string>
+    <string name="split_dialog_confirm">Разбить</string>
+
+    <!-- Split Error Dialog -->
+    <string name="split_error_title">Невозможно разбить блок</string>
+    <string name="split_error_empty">Математический блок пустой. Заполните выражение перед разбиением.</string>
+    <string name="split_error_invalid_result">Результат вычисления содержит ошибку. Исправьте выражение перед разбиением.</string>
+    <string name="split_error_invalid_percent">Процент должен быть в диапазоне от 0 до 100.</string>
+    <string name="split_error_ok">Понятно</string>
+
+    <!-- Text Node -->
+    <string name="text_node_placeholder">Введите текст...</string>
+
+    <!-- Math Node -->
+    <string name="math_node_placeholder_active">Используйте клавиатуру снизу...</string>
+    <string name="math_node_placeholder_inactive">Введите выражение...</string>
+
+    <!-- Math Keyboard -->
+    <string name="math_keyboard_expression_hint">Введите выражение...</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_appearance">Внешний вид</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_auto">Авто</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_language_section">Язык</string>
+    <string name="settings_language">Язык интерфейса</string>
+    <string name="settings_calculator">Калькулятор</string>
+    <string name="settings_angle_mode">Угол по умолчанию</string>
 </resources>
+

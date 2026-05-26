@@ -31,10 +31,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.computingsystem.R
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
@@ -130,7 +132,7 @@ fun TextNodeView(
                         Box {
                             if (text.isEmpty()) {
                                 Text(
-                                    text = "Введите текст...",
+                                    text = stringResource(R.string.text_node_placeholder),
                                     style = TextStyle(
                                         fontSize = scaledFont, lineHeight = scaledFont,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,

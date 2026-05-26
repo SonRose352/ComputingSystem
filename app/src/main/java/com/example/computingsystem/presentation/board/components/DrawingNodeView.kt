@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.computingsystem.R
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
@@ -205,7 +207,7 @@ fun DrawingNodeView(
                 // Подсказка
                 if (localStrokes.isEmpty() && currentStroke == null) {
                     Text(
-                        text = if (isActive) "Рисуйте здесь..." else "Нажмите для рисования",
+                        text = if (isActive) stringResource(R.string.drawing_hint_active) else stringResource(R.string.drawing_hint_inactive),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.align(Alignment.Center)
@@ -231,7 +233,7 @@ fun DrawingNodeView(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Настройки рисования",
+                                contentDescription = stringResource(R.string.drawing_toolbar_title),
                                 modifier = Modifier.fillMaxSize(0.6f),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -243,8 +245,8 @@ fun DrawingNodeView(
                             modifier = Modifier.size(scaledMenuIcon)
                         ) {
                             Icon(
-                                painter = androidx.compose.ui.res.painterResource(com.example.computingsystem.R.drawable.ic_ai),
-                                contentDescription = "Распознать выражение",
+                                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_ai),
+                                contentDescription = stringResource(R.string.drawing_recognize),
                                 modifier = Modifier.fillMaxSize(0.6f),
                                 tint = MaterialTheme.colorScheme.tertiary
                             )
