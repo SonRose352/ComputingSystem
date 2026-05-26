@@ -1,10 +1,10 @@
 package com.example.computingsystem
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,9 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -27,6 +27,7 @@ import com.example.computingsystem.presentation.navigation.Screen
 import com.example.computingsystem.presentation.settings.SettingsViewModel
 import com.example.computingsystem.ui.theme.ComputingSystemTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -37,19 +38,29 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val settings by settingsViewModel.settings.collectAsState()
 
+            val context = LocalContext.current
+
             LaunchedEffect(settings.language) {
 
-                val languageTag = when (settings.language) {
-                    AppLanguage.RUSSIAN -> "ru"
-                    AppLanguage.ENGLISH -> "en"
+                val locale = when (settings.language) {
+                    AppLanguage.RUSSIAN -> Locale("ru")
+                    AppLanguage.ENGLISH -> Locale("en")
                 }
 
-                AppCompatDelegate.setApplicationLocales(
-                    LocaleListCompat.forLanguageTags(languageTag)
+                Locale.setDefault(locale)
+
+                val config = Configuration(
+                    context.resources.configuration
+                )
+
+                config.setLocale(locale)
+
+                context.resources.updateConfiguration(
+                    config,
+                    context.resources.displayMetrics
                 )
             }
 
@@ -75,19 +86,19 @@ private fun MainScaffold() {
 
     val navItems = listOf(
         NavItem(
-            screen = Screen.Calculator,
-            icon = ImageVector.vectorResource(R.drawable.ic_calculator),
-            labelRes = R.string.nav_calculator
+            Screen.Calculator,
+            ImageVector.vectorResource(R.drawable.ic_calculator),
+            stringResource(R.string.nav_calculator)
         ),
         NavItem(
-            screen = Screen.Board,
-            icon = ImageVector.vectorResource(R.drawable.ic_board),
-            labelRes = R.string.nav_board
+            Screen.Board,
+            ImageVector.vectorResource(R.drawable.ic_board),
+            stringResource(R.string.nav_board)
         ),
         NavItem(
-            screen = Screen.Settings,
-            icon = ImageVector.vectorResource(R.drawable.ic_settings),
-            labelRes = R.string.nav_settings
+            Screen.Settings,
+            ImageVector.vectorResource(R.drawable.ic_settings),
+            stringResource(R.string.nav_settings)
         )
     )
 
@@ -99,6 +110,7 @@ private fun MainScaffold() {
             NavigationBar {
 
                 val backStack by navController.currentBackStackEntryAsState()
+
                 val currentDest = backStack?.destination
 
                 navItems.forEach { item ->
@@ -124,20 +136,17 @@ private fun MainScaffold() {
                         icon = {
                             Icon(
                                 imageVector = item.icon,
-                                contentDescription = stringResource(item.labelRes)
+                                contentDescription = item.label
                             )
                         },
 
                         label = {
-                            Text(
-                                text = stringResource(item.labelRes)
-                            )
+                            Text(item.label)
                         }
                     )
                 }
             }
         }
-
     ) { innerPadding ->
 
         AppNavGraph(
@@ -150,5 +159,5 @@ private fun MainScaffold() {
 private data class NavItem(
     val screen: Screen,
     val icon: ImageVector,
-    val labelRes: Int
+    val label: String
 )

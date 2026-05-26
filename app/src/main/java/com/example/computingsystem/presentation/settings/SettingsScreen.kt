@@ -62,7 +62,9 @@ fun SettingsScreen(
                 AppLanguage.ENGLISH to "English"
             ),
             selected = settings.language,
-            onSelect = { viewModel.setLanguage(it) }
+            onSelect = {
+                viewModel.setLanguage(it)
+            }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
