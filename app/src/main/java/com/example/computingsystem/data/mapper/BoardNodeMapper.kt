@@ -53,10 +53,11 @@ object BoardNodeMapper {
         }
     }
 
-    fun toEntity(domain: BoardNode): BoardNodeEntity {
+    fun toEntity(domain: BoardNode, boardId: String): BoardNodeEntity {
         return when (domain) {
             is BoardNode.TextNode -> BoardNodeEntity(
                 id = domain.id,
+                boardId = boardId,
                 type = "text",
                 x = domain.position.x,
                 y = domain.position.y,
@@ -67,6 +68,7 @@ object BoardNodeMapper {
             )
             is BoardNode.MathNode -> BoardNodeEntity(
                 id = domain.id,
+                boardId = boardId,
                 type = "math",
                 x = domain.position.x,
                 y = domain.position.y,
@@ -77,6 +79,7 @@ object BoardNodeMapper {
             )
             is BoardNode.DrawingNode -> BoardNodeEntity(
                 id = domain.id,
+                boardId = boardId,
                 type = "drawing",
                 x = domain.position.x,
                 y = domain.position.y,

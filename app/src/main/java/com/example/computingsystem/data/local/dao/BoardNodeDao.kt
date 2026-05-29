@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BoardNodeDao {
 
-    @Query("SELECT * FROM board_nodes ORDER BY updatedAt DESC")
-    fun getAll(): Flow<List<BoardNodeEntity>>
+    @Query("SELECT * FROM board_nodes WHERE boardId = :boardId ORDER BY updatedAt DESC")
+    fun getByBoard(boardId: String): Flow<List<BoardNodeEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: BoardNodeEntity)
@@ -19,6 +19,6 @@ interface BoardNodeDao {
     @Query("DELETE FROM board_nodes WHERE id = :nodeId")
     suspend fun deleteById(nodeId: String)
 
-    @Query("DELETE FROM board_nodes")
-    suspend fun deleteAll()
+    @Query("DELETE FROM board_nodes WHERE boardId = :boardId")
+    suspend fun deleteAllByBoard(boardId: String)
 }

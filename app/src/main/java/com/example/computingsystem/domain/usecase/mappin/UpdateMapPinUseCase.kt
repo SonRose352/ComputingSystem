@@ -7,5 +7,6 @@ import javax.inject.Inject
 class UpdateMapPinUseCase @Inject constructor(
     private val repository: IMapPinRepository
 ) {
-    suspend operator fun invoke(pin: MapPin) = repository.updatePin(pin)
+    suspend operator fun invoke(pin: MapPin, boardId: String) =
+        repository.updatePin(pin, boardId)
 }

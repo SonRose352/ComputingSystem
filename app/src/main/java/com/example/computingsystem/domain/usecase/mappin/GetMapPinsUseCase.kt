@@ -6,5 +6,5 @@ import javax.inject.Inject
 class GetMapPinsUseCase @Inject constructor(
     private val repository: IMapPinRepository
 ) {
-    operator fun invoke() = repository.getPins()
+    operator fun invoke(boardId: String) = repository.getPins(boardId)
 }

@@ -1,9 +1,11 @@
 package com.example.computingsystem.di
 
+import com.example.computingsystem.data.repository.BoardMetaRepositoryImpl
 import com.example.computingsystem.data.repository.BoardRepositoryImpl
 import com.example.computingsystem.data.repository.ExpressionRepositoryImpl
 import com.example.computingsystem.data.repository.MapPinRepositoryImpl
 import com.example.computingsystem.data.repository.SettingsRepositoryImpl
+import com.example.computingsystem.domain.repository.IBoardMetaRepository
 import com.example.computingsystem.domain.repository.IBoardRepository
 import com.example.computingsystem.domain.repository.IExpressionRepository
 import com.example.computingsystem.domain.repository.IMapPinRepository
@@ -29,6 +31,12 @@ abstract class RepositoryModule {
     abstract fun bindBoardRepository(
         impl: BoardRepositoryImpl
     ): IBoardRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBoardMetaRepository(
+        impl: BoardMetaRepositoryImpl
+    ): IBoardMetaRepository
 
     @Binds
     @Singleton

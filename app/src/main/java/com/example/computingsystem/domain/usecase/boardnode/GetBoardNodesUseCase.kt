@@ -6,5 +6,5 @@ import javax.inject.Inject
 class GetBoardNodesUseCase @Inject constructor(
     private val repository: IBoardRepository
 ) {
-    operator fun invoke() = repository.getNodes()
+    operator fun invoke(boardId: String) = repository.getNodes(boardId)
 }

@@ -2,6 +2,7 @@ package com.example.computingsystem.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.computingsystem.data.local.dao.BoardDao
 import com.example.computingsystem.data.local.dao.BoardNodeDao
 import com.example.computingsystem.data.local.dao.ExpressionDao
 import com.example.computingsystem.data.local.dao.MapPinDao
@@ -23,6 +24,9 @@ object DatabaseModule {
         Room.databaseBuilder(context, AppDatabase::class.java, "computing_system.db")
             .fallbackToDestructiveMigration()
             .build()
+
+    @Provides
+    fun provideBoardDao(db: AppDatabase): BoardDao = db.boardDao()
 
     @Provides
     fun provideExpressionDao(db: AppDatabase): ExpressionDao = db.expressionDao()

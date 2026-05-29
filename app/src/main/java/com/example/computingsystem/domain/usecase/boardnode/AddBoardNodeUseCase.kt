@@ -7,5 +7,6 @@ import javax.inject.Inject
 class AddBoardNodeUseCase @Inject constructor(
     private val repository: IBoardRepository
 ) {
-    suspend operator fun invoke(node: BoardNode) = repository.addNode(node)
+    suspend operator fun invoke(node: BoardNode, boardId: String) =
+        repository.addNode(node, boardId)
 }

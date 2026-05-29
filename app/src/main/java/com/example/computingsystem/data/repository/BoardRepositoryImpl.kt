@@ -12,19 +12,20 @@ class BoardRepositoryImpl @Inject constructor(
     private val dao: BoardNodeDao
 ) : IBoardRepository {
 
-    override fun getNodes(): Flow<List<BoardNode>> =
-        dao.getAll().map { entities ->
+    override fun getNodes(boardId: String): Flow<List<BoardNode>> =
+        dao.getByBoard(boardId).map { entities ->
             entities.map(BoardNodeMapper::toDomain)
         }
 
-    override suspend fun addNode(node: BoardNode) =
-        dao.insert(BoardNodeMapper.toEntity(node))
+    override suspend fun addNode(node: BoardNode, boardId: String) =
+        dao.insert(BoardNodeMapper.toEntity(node, boardId))
 
-    override suspend fun updateNode(node: BoardNode) =
-        dao.update(BoardNodeMapper.toEntity(node))
+    override suspend fun updateNode(node: BoardNode, boardId: String) =
+        dao.update(BoardNodeMapper.toEntity(node, boardId))
 
     override suspend fun deleteNode(nodeId: String) =
         dao.deleteById(nodeId)
 
-    override suspend fun deleteAll() = dao.deleteAll()
+    override suspend fun deleteAll(boardId: String) =
+        dao.deleteAllByBoard(boardId)
 }

@@ -1,5 +1,6 @@
 package com.example.computingsystem
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.res.Configuration
 import android.os.Bundle
@@ -33,6 +34,7 @@ import java.util.Locale
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @SuppressLint("LocalContextConfigurationRead", "LocalContextResourcesRead")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

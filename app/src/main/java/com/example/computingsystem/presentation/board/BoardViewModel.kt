@@ -5,12 +5,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.computingsystem.domain.model.Board
 import com.example.computingsystem.domain.model.BoardNode
 import com.example.computingsystem.domain.model.Expression
 import com.example.computingsystem.domain.model.MapPin
 import com.example.computingsystem.domain.model.Position
 import com.example.computingsystem.domain.model.Size
 import com.example.computingsystem.domain.service.InkRecognitionService
+import com.example.computingsystem.domain.usecase.board.CreateBoardUseCase
+import com.example.computingsystem.domain.usecase.board.GetBoardsUseCase
 import com.example.computingsystem.domain.usecase.boardnode.AddBoardNodeUseCase
 import com.example.computingsystem.domain.usecase.boardnode.DeleteBoardNodeUseCase
 import com.example.computingsystem.domain.usecase.expression.EvaluateExpressionUseCase
@@ -23,12 +26,15 @@ import com.example.computingsystem.domain.usecase.mappin.GetMapPinsUseCase
 import com.example.computingsystem.domain.usecase.mappin.UpdateMapPinUseCase
 import com.example.computingsystem.presentation.calculator.AngleMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class BoardViewModel @Inject constructor(
+    private val getBoards: GetBoardsUseCase,
+    private val createBoard: CreateBoardUseCase,
     getNodes: GetBoardNodesUseCase,
     private val addNode: AddBoardNodeUseCase,
     private val updateNode: UpdateBoardNodeUseCase,
@@ -45,10 +51,20 @@ class BoardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BoardUiState())
     val uiState: StateFlow<BoardUiState> = _uiState.asStateFlow()
 
-    val nodes: StateFlow<List<BoardNode>> = getNodes()
+    private val _currentBoardId = MutableStateFlow<String>("")
+    val currentBoardId: StateFlow<String> = _currentBoardId.asStateFlow()
+
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val nodes: StateFlow<List<BoardNode>> = _currentBoardId
+        .filterNotNull()
+        .flatMapLatest { boardId -> getNodes(boardId) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val mapPins: StateFlow<List<MapPin>> = getPins()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val mapPins: StateFlow<List<MapPin>> = _currentBoardId
+        .filterNotNull()
+        .flatMapLatest { boardId -> getPins(boardId) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val functionTokens = setOf(
@@ -60,6 +76,30 @@ class BoardViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             inkRecognitionService.downloadModelIfNeeded()
+        }
+
+        viewModelScope.launch {
+            initializeBoard()
+        }
+    }
+
+    private suspend fun initializeBoard() {
+        try {
+            val boards = getBoards().first()
+
+            if (boards.isEmpty()) {
+                // Создаём дефолтную доску, если нет ни одной
+                val defaultBoard = Board()
+                createBoard(defaultBoard)
+                _currentBoardId.value = defaultBoard.id
+                Log.d("BoardViewModel", "Created default board: ${defaultBoard.id}")
+            } else {
+                // Берём первую (самую свежую) доску
+                _currentBoardId.value = boards.first().id
+                Log.d("BoardViewModel", "Loaded board: ${boards.first().id}")
+            }
+        } catch (e: Exception) {
+            Log.e("BoardViewModel", "Error initializing board", e)
         }
     }
 
@@ -221,8 +261,8 @@ class BoardViewModel @Inject constructor(
 
             deleteNode(nodeId)
 
-            addNode(firstNode)
-            addNode(secondNode)
+            addNode(firstNode, currentBoardId.value)
+            addNode(secondNode, currentBoardId.value)
         }
 
         dismissSplitDialog()
@@ -276,7 +316,7 @@ class BoardViewModel @Inject constructor(
             y = pos.y
         )
         viewModelScope.launch {
-            addPin(newPin)
+            addPin(newPin, currentBoardId.value)
         }
         _uiState.update {
             it.copy(
@@ -298,7 +338,7 @@ class BoardViewModel @Inject constructor(
     private fun toggleMapPinVisibility(pinId: String) {
         val pin = mapPins.value.find { it.id == pinId } ?: return
         viewModelScope.launch {
-            updatePin(pin.copy(isVisible = !pin.isVisible))
+            updatePin(pin.copy(isVisible = !pin.isVisible), currentBoardId.value)
         }
     }
 
@@ -363,7 +403,7 @@ class BoardViewModel @Inject constructor(
                     onSuccess = { evalResult ->
                         viewModelScope.launch {
                             deleteNode(nodeId)
-                            addNode(mathNode.copy(result = evalResult))
+                            addNode(mathNode.copy(result = evalResult), currentBoardId.value)
                             if (result.hasUncertainSymbols) {
                                 _uiState.update {
                                     it.copy(
@@ -379,7 +419,7 @@ class BoardViewModel @Inject constructor(
                     onFailure = {
                         viewModelScope.launch {
                             deleteNode(nodeId)
-                            addNode(mathNode)
+                            addNode(mathNode, currentBoardId.value)
                             _uiState.update {
                                 it.copy(
                                     isRecognizing = false,
@@ -445,7 +485,7 @@ class BoardViewModel @Inject constructor(
     private fun clearDrawing(nodeId: String) {
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return@launch
-            updateNode(node.copy(strokes = emptyList()))
+            updateNode(node.copy(strokes = emptyList()), currentBoardId.value)
         }
     }
 
@@ -453,7 +493,7 @@ class BoardViewModel @Inject constructor(
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return@launch
             if (node.strokes.isNotEmpty()) {
-                updateNode(node.copy(strokes = node.strokes.dropLast(1)))
+                updateNode(node.copy(strokes = node.strokes.dropLast(1)), currentBoardId.value)
             }
         }
     }
@@ -461,7 +501,7 @@ class BoardViewModel @Inject constructor(
     private fun updateDrawingNode(nodeId: String, strokes: List<List<Pair<Float, Float>>>) {
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } as? BoardNode.DrawingNode ?: return@launch
-            updateNode(node.copy(strokes = strokes))
+            updateNode(node.copy(strokes = strokes), currentBoardId.value)
         }
     }
 
@@ -471,7 +511,7 @@ class BoardViewModel @Inject constructor(
             NodeType.MATH -> BoardNode.MathNode(position = Position(canvasOffset.x, canvasOffset.y))
             NodeType.DRAWING -> BoardNode.DrawingNode(position = Position(canvasOffset.x, canvasOffset.y))
         }
-        viewModelScope.launch { addNode(node) }
+        viewModelScope.launch { addNode(node, currentBoardId.value) }
     }
 
     private fun copyNode(nodeId: String) {
@@ -543,7 +583,7 @@ class BoardViewModel @Inject constructor(
 
             }
             viewModelScope.launch {
-                addNode(copy)
+                addNode(copy, currentBoardId.value)
                 _uiState.update {
                     it.copy(
                         selectedNodeType = null,
@@ -568,7 +608,7 @@ class BoardViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            addNode(node)
+            addNode(node, currentBoardId.value)
             _uiState.update {
                 it.copy(
                     selectedNodeType = null,
@@ -582,7 +622,7 @@ class BoardViewModel @Inject constructor(
     private fun updateTextNode(nodeId: String, text: String) {
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } as? BoardNode.TextNode ?: return@launch
-            updateNode(node.copy(text = text))
+            updateNode(node.copy(text = text), currentBoardId.value)
         }
     }
 
@@ -638,7 +678,8 @@ class BoardViewModel @Inject constructor(
                     is BoardNode.TextNode -> node.copy(position = newPosition)
                     is BoardNode.MathNode -> node.copy(position = newPosition)
                     is BoardNode.DrawingNode -> node.copy(position = newPosition)
-                }
+                },
+                currentBoardId.value
             )
         }
     }
@@ -651,7 +692,8 @@ class BoardViewModel @Inject constructor(
                     is BoardNode.TextNode -> node.copy(size = newSize)
                     is BoardNode.MathNode -> node.copy(size = newSize)
                     is BoardNode.DrawingNode -> node.copy(size = newSize)
-                }
+                },
+                currentBoardId.value
             )
         }
     }
@@ -741,7 +783,7 @@ class BoardViewModel @Inject constructor(
                         expression = expression,
                         result     = result
                     )
-                    addNode(newNode)
+                    addNode(newNode, currentBoardId.value)
 
                     saveExpression(Expression(input = expression, result = result))
                 }
@@ -755,7 +797,8 @@ class BoardViewModel @Inject constructor(
                             position   = Position(midX, midY),
                             expression = expression,
                             result     = "Ошибка"
-                        )
+                        ),
+                        currentBoardId.value
                     )
                 }
             }
@@ -842,7 +885,7 @@ class BoardViewModel @Inject constructor(
         val activeId = _uiState.value.activeNodeId ?: return
         viewModelScope.launch {
             val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode ?: return@launch
-            updateNode(node.copy(expression = "", result = ""))
+            updateNode(node.copy(expression = "", result = ""), currentBoardId.value)
         }
     }
 
@@ -878,14 +921,14 @@ class BoardViewModel @Inject constructor(
             onSuccess = { result ->
                 viewModelScope.launch {
                     val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode ?: return@launch
-                    updateNode(node.copy(expression = final, result = result))
+                    updateNode(node.copy(expression = final, result = result), currentBoardId.value)
                     saveExpression(Expression(input = final, result = result))
                 }
             },
             onFailure = {
                 viewModelScope.launch {
                     val node = nodes.value.find { it.id == activeId } as? BoardNode.MathNode ?: return@launch
-                    updateNode(node.copy(expression = final, result = "Ошибка"))
+                    updateNode(node.copy(expression = final, result = "Ошибка"), currentBoardId.value)
                 }
             }
         )
@@ -907,7 +950,7 @@ class BoardViewModel @Inject constructor(
     private fun saveMathExpression(nodeId: String, expression: String, result: String = "") {
         viewModelScope.launch {
             val node = nodes.value.find { it.id == nodeId } as? BoardNode.MathNode ?: return@launch
-            updateNode(node.copy(expression = expression, result = result))
+            updateNode(node.copy(expression = expression, result = result), currentBoardId.value)
         }
     }
 }

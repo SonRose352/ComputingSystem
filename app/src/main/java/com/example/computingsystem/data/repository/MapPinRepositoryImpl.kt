@@ -12,18 +12,18 @@ class MapPinRepositoryImpl @Inject constructor(
     private val dao: MapPinDao
 ) : IMapPinRepository {
 
-    override fun getPins(): Flow<List<MapPin>> =
-        dao.getAll().map { list -> list.map(MapPinMapper::toDomain) }
+    override fun getPins(boardId: String): Flow<List<MapPin>> =
+        dao.getByBoard(boardId).map { list -> list.map(MapPinMapper::toDomain) }
 
-    override suspend fun addPin(pin: MapPin) =
-        dao.insert(MapPinMapper.toEntity(pin))
+    override suspend fun addPin(pin: MapPin, boardId: String) =
+        dao.insert(MapPinMapper.toEntity(pin, boardId))
 
-    override suspend fun updatePin(pin: MapPin) =
-        dao.update(MapPinMapper.toEntity(pin))
+    override suspend fun updatePin(pin: MapPin, boardId: String) =
+        dao.update(MapPinMapper.toEntity(pin, boardId))
 
     override suspend fun deletePin(pinId: String) =
         dao.deleteById(pinId)
 
-    override suspend fun deleteAll() =
-        dao.deleteAll()
+    override suspend fun deleteAll(boardId: String) =
+        dao.deleteAllByBoard(boardId)
 }

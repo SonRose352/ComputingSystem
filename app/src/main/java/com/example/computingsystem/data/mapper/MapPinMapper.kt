@@ -13,8 +13,9 @@ object MapPinMapper {
         isVisible = entity.isVisible
     )
 
-    fun toEntity(domain: MapPin) = MapPinEntity(
+    fun toEntity(domain: MapPin, boardId: String) = MapPinEntity(
         id = domain.id,
+        boardId = boardId,
         name = domain.name,
         x = domain.x,
         y = domain.y,

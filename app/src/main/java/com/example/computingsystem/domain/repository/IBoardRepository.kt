@@ -4,9 +4,9 @@ import com.example.computingsystem.domain.model.BoardNode
 import kotlinx.coroutines.flow.Flow
 
 interface IBoardRepository {
-    fun getNodes(): Flow<List<BoardNode>>
-    suspend fun addNode(node: BoardNode)
-    suspend fun updateNode(node: BoardNode)
+    fun getNodes(boardId: String): Flow<List<BoardNode>>
+    suspend fun addNode(node: BoardNode, boardId: String)
+    suspend fun updateNode(node: BoardNode, boardId: String)
     suspend fun deleteNode(nodeId: String)
-    suspend fun deleteAll()
+    suspend fun deleteAll(boardId: String)
 }
